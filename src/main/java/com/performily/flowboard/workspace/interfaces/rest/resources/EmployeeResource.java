@@ -3,6 +3,7 @@ package com.performily.flowboard.workspace.interfaces.rest.resources;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
  * Employee Resource
@@ -36,6 +37,7 @@ public record EmployeeResource(
         @Schema(description = "Area name", example = "Recursos Humanos") String areaName,
         @Schema(description = "Position identifier", example = "1") Long positionId,
         @Schema(description = "Position title", example = "Analista de RR.HH.") String positionTitle,
-        @Schema(description = "Direct manager identifier", example = "2") Long directManagerId
+        @Schema(description = "Direct manager identifier", example = "2") Long directManagerId,
+        @Schema(description = "Date and time of the last modification") LocalDateTime updatedAt
 ) {
 }

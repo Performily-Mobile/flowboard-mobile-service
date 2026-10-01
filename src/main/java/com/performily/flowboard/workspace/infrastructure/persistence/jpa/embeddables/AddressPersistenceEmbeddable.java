@@ -10,7 +10,8 @@ import lombok.Setter;
 /**
  * Address Persistence Embeddable
  * @summary
- * Persistence representation for the Address value object.
+ * Persistence representation for the Address value object. The columns are
+ * nullable because the address is optional when the employee is registered.
  *
  * @since 1.0.0
  */
@@ -20,15 +21,15 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AddressPersistenceEmbeddable {
-    @Column(name = "address_street", nullable = false, length = 150)
+    @Column(name = "address_street", length = 150)
     private String street;
 
-    @Column(name = "address_district", nullable = false, length = 60)
+    @Column(name = "address_district", length = 60)
     private String district;
 
-    @Column(name = "address_province", nullable = false, length = 60)
+    @Column(name = "address_province", length = 60)
     private String province;
 
-    @Column(name = "address_department", nullable = false, length = 60)
+    @Column(name = "address_department", length = 60)
     private String department;
 }

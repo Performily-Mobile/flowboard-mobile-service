@@ -30,10 +30,10 @@ public class EmployeeResourceFromEntityAssembler {
                 entity.getBirthDate().value(),
                 entity.getContactInfo().email().value(),
                 entity.getContactInfo().phoneNumber().value(),
-                address.street(),
-                address.district(),
-                address.province(),
-                address.department(),
+                address == null ? null : address.street(),
+                address == null ? null : address.district(),
+                address == null ? null : address.province(),
+                address == null ? null : address.department(),
                 entity.getContractType().name(),
                 entity.getEmploymentPeriod().hireDate(),
                 entity.getEmploymentPeriod().contractEndDate(),
@@ -44,6 +44,7 @@ public class EmployeeResourceFromEntityAssembler {
                 entity.getArea().getName(),
                 entity.getPosition().getId(),
                 entity.getPosition().getTitle(),
-                entity.hasDirectManager() ? entity.getDirectManagerId().value() : null);
+                entity.hasDirectManager() ? entity.getDirectManagerId().value() : null,
+                entity.getUpdatedAt());
     }
 }

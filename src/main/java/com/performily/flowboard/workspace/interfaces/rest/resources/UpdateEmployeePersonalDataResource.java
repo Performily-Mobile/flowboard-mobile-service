@@ -8,7 +8,7 @@ import java.time.LocalDate;
 /**
  * Update Employee Personal Data Resource
  * @summary
- * Resource for updating the personal data of an employee.
+ * Resource for updating the personal data of an employee. The address is optional.
  *
  * @since 1.0.0
  */
@@ -34,20 +34,16 @@ public record UpdateEmployeePersonalDataResource(
         @Schema(description = "Phone number", example = "+51987654321")
         String phoneNumber,
 
-        @NotBlank(message = "{validation.not-blank}")
-        @Schema(description = "Street and number", example = "Av. Primavera 123")
+        @Schema(description = "Street and number. Optional", example = "Av. Primavera 123")
         String street,
 
-        @NotBlank(message = "{validation.not-blank}")
-        @Schema(description = "District", example = "Santiago de Surco")
+        @Schema(description = "District. Optional", example = "Santiago de Surco")
         String district,
 
-        @NotBlank(message = "{validation.not-blank}")
-        @Schema(description = "Province", example = "Lima")
+        @Schema(description = "Province. Optional", example = "Lima")
         String province,
 
-        @NotBlank(message = "{validation.not-blank}")
-        @Schema(description = "Department", example = "Lima")
+        @Schema(description = "Department. Optional", example = "Lima")
         String department
 ) {
 }

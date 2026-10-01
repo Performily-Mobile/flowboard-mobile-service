@@ -6,6 +6,8 @@ import com.performily.flowboard.workspace.domain.model.valueobjects.*;
 import com.performily.flowboard.workspace.infrastructure.persistence.jpa.embeddables.*;
 import com.performily.flowboard.workspace.infrastructure.persistence.jpa.entities.EmployeePersistenceEntity;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
 
@@ -39,7 +41,9 @@ public final class EmployeePersistenceAssembler {
                 new IdentityDocument(identityDocument.getType(), identityDocument.getNumber()),
                 entity.getBirthDate(),
                 new ContactInfo(entity.getEmail(), entity.getPhoneNumber()),
-                new Address(address.getStreet(), address.getDistrict(), address.getProvince(), address.getDepartment()),
+                address == null || address.getStreet() == null
+                        ? null
+                        : new Address(address.getStreet(), address.getDistrict(), address.getProvince(), address.getDepartment()),
                 entity.getContractType(),
                 new EmploymentPeriod(period.getHireDate(), period.getContractEndDate()),
                 entity.getStatus(),
@@ -54,7 +58,10 @@ public final class EmployeePersistenceAssembler {
                         .toList(),
                 entity.getDocuments().stream()
                         .map(EmployeeDocumentPersistenceAssembler::toDomainFromPersistence)
-                        .toList());
+                        .toList(),
+                entity.getUpdatedAt() == null
+                        ? null
+                        : LocalDateTime.ofInstant(entity.getUpdatedAt().toInstant(), ZoneId.systemDefault()));
     }
 
     /**
@@ -79,8 +86,9 @@ public final class EmployeePersistenceAssembler {
         entity.setBirthDate(employee.getBirthDate());
         entity.setEmail(employee.getContactInfo().email());
         entity.setPhoneNumber(employee.getContactInfo().phoneNumber());
-        entity.setAddress(new AddressPersistenceEmbeddable(
-                address.street(), address.district(), address.province(), address.department()));
+        entity.setAddress(address == null
+                ? null
+                : new AddressPersistenceEmbeddable(address.street(), address.district(), address.province(), address.department()));
         entity.setContractType(employee.getContractType());
         entity.setEmploymentPeriod(new EmploymentPeriodPersistenceEmbeddable(period.hireDate(), period.contractEndDate()));
         entity.setStatus(employee.getStatus());

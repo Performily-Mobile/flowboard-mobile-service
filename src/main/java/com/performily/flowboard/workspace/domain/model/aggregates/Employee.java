@@ -14,6 +14,7 @@ import com.performily.flowboard.workspace.domain.model.events.EmployeeTerminated
 import com.performily.flowboard.workspace.domain.model.valueobjects.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -31,6 +32,8 @@ import java.util.Objects;
  * - The position must belong to the assigned area.
  * - Every area or position change closes the current JobAssignment and opens a new one.
  * - A FIXED_TERM contract requires a contract end date.
+ *
+ * The address is optional: it is not requested when the employee is registered.
  *
  * Invariants that need other employees (unique identity document among ACTIVE
  * employees, no cycles in the hierarchy, no termination with subordinates) are
@@ -55,6 +58,7 @@ public class Employee extends AbstractDomainAggregateRoot<Employee> {
     private EmployeeId directManagerId;
     private final List<JobAssignment> jobAssignments;
     private final List<EmployeeDocument> documents;
+    private LocalDateTime updatedAt;
 
     /**
      * Registers a new ACTIVE employee and opens its first job assignment (HIRE).
@@ -63,7 +67,7 @@ public class Employee extends AbstractDomainAggregateRoot<Employee> {
      * @param identityDocument the identity document
      * @param birthDate        the birth date
      * @param contactInfo      the contact information
-     * @param address          the address
+     * @param address          the address, or null when it was not provided
      * @param contractType     the contract type
      * @param employmentPeriod the employment period
      * @param area             the assigned area
@@ -76,7 +80,7 @@ public class Employee extends AbstractDomainAggregateRoot<Employee> {
         this.identityDocument = Objects.requireNonNull(identityDocument, "Identity document cannot be null");
         this.birthDate = Objects.requireNonNull(birthDate, "Birth date cannot be null");
         this.contactInfo = Objects.requireNonNull(contactInfo, "Contact info cannot be null");
-        this.address = Objects.requireNonNull(address, "Address cannot be null");
+        this.address = address;
         this.contractType = Objects.requireNonNull(contractType, "Contract type cannot be null");
         this.employmentPeriod = Objects.requireNonNull(employmentPeriod, "Employment period cannot be null");
         validateContract(contractType, employmentPeriod);
@@ -107,12 +111,14 @@ public class Employee extends AbstractDomainAggregateRoot<Employee> {
      * @param directManagerId  the direct manager id, or null
      * @param jobAssignments   the job history
      * @param documents        the attached documents
+     * @param updatedAt        the date and time of the last modification
      */
     public Employee(Long id, PersonName name, IdentityDocument identityDocument, BirthDate birthDate,
                     ContactInfo contactInfo, Address address, ContractType contractType,
                     EmploymentPeriod employmentPeriod, EmploymentStatus status, TerminationDetails termination,
                     Area area, Position position, EmployeeId directManagerId,
-                    List<JobAssignment> jobAssignments, List<EmployeeDocument> documents) {
+                    List<JobAssignment> jobAssignments, List<EmployeeDocument> documents,
+                    LocalDateTime updatedAt) {
         this.id = id;
         this.name = name;
         this.identityDocument = identityDocument;
@@ -128,6 +134,7 @@ public class Employee extends AbstractDomainAggregateRoot<Employee> {
         this.directManagerId = directManagerId;
         this.jobAssignments = new ArrayList<>(jobAssignments == null ? List.of() : jobAssignments);
         this.documents = new ArrayList<>(documents == null ? List.of() : documents);
+        this.updatedAt = updatedAt;
     }
 
     /**
@@ -136,13 +143,13 @@ public class Employee extends AbstractDomainAggregateRoot<Employee> {
      * @param name        the new name
      * @param birthDate   the new birth date
      * @param contactInfo the new contact information
-     * @param address     the new address
+     * @param address     the new address, or null to leave it empty
      */
     public void updatePersonalData(PersonName name, BirthDate birthDate, ContactInfo contactInfo, Address address) {
         this.name = Objects.requireNonNull(name, "Name cannot be null");
         this.birthDate = Objects.requireNonNull(birthDate, "Birth date cannot be null");
         this.contactInfo = Objects.requireNonNull(contactInfo, "Contact info cannot be null");
-        this.address = Objects.requireNonNull(address, "Address cannot be null");
+        this.address = address;
     }
 
     /**
@@ -401,5 +408,9 @@ public class Employee extends AbstractDomainAggregateRoot<Employee> {
 
     public List<EmployeeDocument> getDocuments() {
         return List.copyOf(documents);
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
     }
 }
