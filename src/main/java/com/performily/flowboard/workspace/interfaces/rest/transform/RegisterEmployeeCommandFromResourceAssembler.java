@@ -38,6 +38,7 @@ public class RegisterEmployeeCommandFromResourceAssembler {
                 resource.hireDate(),
                 resource.contractEndDate(),
                 resource.areaId(),
-                resource.positionId());
+                resource.positionId(),
+                resource.directManagerId());
     }
 }

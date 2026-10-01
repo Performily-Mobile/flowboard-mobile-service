@@ -55,8 +55,21 @@ public class EmployeeCommandServiceImpl implements EmployeeCommandService {
 
     @Override
     public Result<Long, ApplicationError> handle(RegisterEmployeeCommand command) {
+        if (command.directManagerId() != null) {
+            var manager = employeeRepository.findById(command.directManagerId());
+            if (manager.isEmpty())
+                return Result.failure(ApplicationError.notFound("Employee", command.directManagerId().toString()));
+            if (!manager.get().isActive())
+                return Result.failure(ApplicationError.businessRuleViolation(
+                        "direct-manager", "The direct manager must be an active employee"));
+        }
         return findJob(command.areaId(), command.positionId())
-                .flatMap(job -> register(command, job));
+                .flatMap(job -> register(command, job))
+                .flatMap(employeeId -> command.directManagerId() == null
+                        ? Result.success(employeeId)
+                        : update(employeeId, "assign-direct-manager", employee ->
+                                employee.assignDirectManager(new EmployeeId(command.directManagerId())))
+                        .map(Employee::getId));
     }
 
     @Override
@@ -71,7 +84,7 @@ public class EmployeeCommandServiceImpl implements EmployeeCommandService {
                             new PersonName(command.firstName(), command.lastName()),
                             new BirthDate(command.birthDate()),
                             new ContactInfo(email, new PhoneNumber(command.phoneNumber())),
-                            new Address(command.street(), command.district(), command.province(), command.department())));
+                            toAddress(command.street(), command.district(), command.province(), command.department())));
         } catch (IllegalArgumentException e) {
             return Result.failure(ApplicationError.validationError("employee", e.getMessage()));
         }
@@ -163,7 +176,7 @@ public class EmployeeCommandServiceImpl implements EmployeeCommandService {
                     identityDocument,
                     new BirthDate(command.birthDate()),
                     new ContactInfo(email, new PhoneNumber(command.phoneNumber())),
-                    new Address(command.street(), command.district(), command.province(), command.department()),
+                    toAddress(command.street(), command.district(), command.province(), command.department()),
                     command.contractType(),
                     new EmploymentPeriod(command.hireDate(), command.contractEndDate()),
                     job.area(),
@@ -195,6 +208,33 @@ public class EmployeeCommandServiceImpl implements EmployeeCommandService {
         } catch (Exception e) {
             return Result.failure(ApplicationError.unexpected(context, e.getMessage()));
         }
+    }
+
+    /**
+     * Builds the address, or returns null when every field is empty.
+     * A partially filled address is rejected by the Address value object.
+     *
+     * @param street the street
+     * @param district the district
+     * @param province the province
+     * @param department the department
+     * @return the {@link Address}, or null when it was not provided
+     */
+    private static Address toAddress(String street, String district, String province, String department) {
+        if (isBlank(street) && isBlank(district) && isBlank(province) && isBlank(department)) {
+            return null;
+        }
+        return new Address(street, district, province, department);
+    }
+
+    /**
+     * Checks whether a text is null or blank.
+     *
+     * @param value the text
+     * @return true when the text is null or blank
+     */
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 
     /**

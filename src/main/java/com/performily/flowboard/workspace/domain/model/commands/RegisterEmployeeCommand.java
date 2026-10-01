@@ -9,6 +9,7 @@ import java.time.LocalDate;
  * Register Employee Command
  * @summary
  * Command to register a new employee. contractEndDate is optional, except for FIXED_TERM contracts.
+ * The address fields and directManagerId are optional.
  *
  * @since 1.0.0
  */
@@ -28,7 +29,8 @@ public record RegisterEmployeeCommand(
         LocalDate hireDate,
         LocalDate contractEndDate,
         Long areaId,
-        Long positionId) {
+        Long positionId,
+        Long directManagerId) {
     /**
      * Compact constructor for RegisterEmployeeCommand.
      *

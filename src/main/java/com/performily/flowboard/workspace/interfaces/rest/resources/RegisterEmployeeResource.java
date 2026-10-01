@@ -8,7 +8,7 @@ import java.time.LocalDate;
 /**
  * Register Employee Resource
  * @summary
- * Resource for registering an employee.
+ * Resource for registering an employee. The address and the direct manager are optional.
  *
  * @since 1.0.0
  */
@@ -42,20 +42,16 @@ public record RegisterEmployeeResource(
         @Schema(description = "Phone number", example = "+51987654321")
         String phoneNumber,
 
-        @NotBlank(message = "{validation.not-blank}")
-        @Schema(description = "Street and number", example = "Av. Primavera 123")
+        @Schema(description = "Street and number. Optional", example = "Av. Primavera 123")
         String street,
 
-        @NotBlank(message = "{validation.not-blank}")
-        @Schema(description = "District", example = "Santiago de Surco")
+        @Schema(description = "District. Optional", example = "Santiago de Surco")
         String district,
 
-        @NotBlank(message = "{validation.not-blank}")
-        @Schema(description = "Province", example = "Lima")
+        @Schema(description = "Province. Optional", example = "Lima")
         String province,
 
-        @NotBlank(message = "{validation.not-blank}")
-        @Schema(description = "Department", example = "Lima")
+        @Schema(description = "Department. Optional", example = "Lima")
         String department,
 
         @NotBlank(message = "{validation.not-blank}")
@@ -76,6 +72,10 @@ public record RegisterEmployeeResource(
 
         @NotNull(message = "{validation.not-null}") @Positive
         @Schema(description = "Position identifier", example = "1")
-        Long positionId
+        Long positionId,
+
+        @Positive
+        @Schema(description = "Direct manager employee identifier. Optional", example = "2")
+        Long directManagerId
 ) {
 }
