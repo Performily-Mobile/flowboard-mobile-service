@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 /**
@@ -59,6 +60,13 @@ public class EmployeeRepositoryImpl implements EmployeeRepository {
     }
 
     @Override
+    public List<Employee> findAllByFilters(String search, Long areaId, EmploymentStatus status, Long positionId) {
+        var pattern = search == null ? null : "%" + search.trim().toLowerCase(Locale.ROOT) + "%";
+        return employeePersistenceRepository.findAllByFilters(pattern, areaId, status, positionId).stream()
+                .map(EmployeePersistenceAssembler::toDomainFromPersistence).toList();
+    }
+
+    @Override
     public List<Employee> findAllByDirectManagerId(Long managerId) {
         return employeePersistenceRepository.findAllByDirectManagerId(managerId).stream()
                 .map(EmployeePersistenceAssembler::toDomainFromPersistence).toList();
@@ -75,7 +83,7 @@ public class EmployeeRepositoryImpl implements EmployeeRepository {
         boolean isNew = employee.getId() == null;
         var pendingEvents = new ArrayList<>(employee.domainEvents());
         employee.clearDomainEvents();
-        var savedEntity = employeePersistenceRepository.save(EmployeePersistenceAssembler.toPersistenceFromDomain(employee));
+        var savedEntity = employeePersistenceRepository.saveAndFlush(EmployeePersistenceAssembler.toPersistenceFromDomain(employee));
         var savedEmployee = EmployeePersistenceAssembler.toDomainFromPersistence(savedEntity);
         if (isNew) {
             savedEmployee.onRegistered();
@@ -110,6 +118,11 @@ public class EmployeeRepositoryImpl implements EmployeeRepository {
     @Override
     public boolean existsByAreaIdAndStatus(Long areaId, EmploymentStatus status) {
         return employeePersistenceRepository.countByAreaIdAndStatus(areaId, status) > 0;
+    }
+
+    @Override
+    public long countByAreaIdAndStatus(Long areaId, EmploymentStatus status) {
+        return employeePersistenceRepository.countByAreaIdAndStatus(areaId, status);
     }
 
     @Override

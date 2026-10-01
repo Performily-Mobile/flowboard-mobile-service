@@ -21,6 +21,9 @@ public record AreaResource(
         String description,
 
         @Schema(description = "Whether the area is active", example = "true")
-        boolean active
+        boolean active,
+
+        @Schema(description = "Number of ACTIVE employees of the area", example = "48")
+        long activeEmployees
 ) {
 }

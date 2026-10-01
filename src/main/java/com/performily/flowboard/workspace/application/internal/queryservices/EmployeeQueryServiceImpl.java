@@ -36,8 +36,13 @@ public class EmployeeQueryServiceImpl implements EmployeeQueryService {
     }
 
     @Override
-    public List<Employee> handle(GetAllEmployeesQuery query) {
-        return employeeRepository.findAll();
+    public List<Employee> handle(SearchEmployeesQuery query) {
+        return employeeRepository.findAllByFilters(query.search(), query.areaId(), query.status(), query.positionId());
+    }
+
+    @Override
+    public long handle(GetActiveEmployeeCountByAreaIdQuery query) {
+        return employeeRepository.countByAreaIdAndStatus(query.areaId(), EmploymentStatus.ACTIVE);
     }
 
     @Override

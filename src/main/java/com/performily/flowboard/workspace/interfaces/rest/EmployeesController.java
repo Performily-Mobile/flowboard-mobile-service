@@ -10,9 +10,10 @@ import com.performily.flowboard.workspace.domain.model.aggregates.Employee;
 import com.performily.flowboard.workspace.domain.model.commands.RemoveDirectManagerCommand;
 import com.performily.flowboard.workspace.domain.model.commands.SuspendEmployeeCommand;
 import com.performily.flowboard.workspace.domain.model.queries.GetAllEmployeesByDirectManagerIdQuery;
-import com.performily.flowboard.workspace.domain.model.queries.GetAllEmployeesQuery;
 import com.performily.flowboard.workspace.domain.model.queries.GetEmployeeByIdQuery;
 import com.performily.flowboard.workspace.domain.model.queries.GetOrganizationChartQuery;
+import com.performily.flowboard.workspace.domain.model.queries.SearchEmployeesQuery;
+import com.performily.flowboard.workspace.domain.model.valueobjects.EmploymentStatus;
 import com.performily.flowboard.workspace.interfaces.rest.resources.*;
 import com.performily.flowboard.workspace.interfaces.rest.transform.*;
 import io.swagger.v3.oas.annotations.Operation;
@@ -28,6 +29,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Locale;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
@@ -83,18 +85,31 @@ public class EmployeesController {
     }
 
     /**
-     * Get all employees.
+     * Get employees.
      *
+     * @param search the text to search in the names or the identity document number
+     * @param areaId the area id
+     * @param status the employment status
+     * @param positionId the position id
      * @return the HTTP response
      */
     @GetMapping
-    @Operation(summary = "Get all employees", description = "Retrieves all employees.")
+    @Operation(summary = "Get employees",
+            description = "Retrieves the employees ordered by last name. Every filter is optional.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Employees retrieved successfully",
-                    content = @Content(schema = @Schema(implementation = EmployeeResource.class)))
+                    content = @Content(schema = @Schema(implementation = EmployeeResource.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid filter")
     })
-    public ResponseEntity<List<EmployeeResource>> getAllEmployees() {
-        var employees = employeeQueryService.handle(new GetAllEmployeesQuery());
+    public ResponseEntity<List<EmployeeResource>> getAllEmployees(
+            @RequestParam(required = false) @Parameter(description = "Name, last name or identity document number", example = "Espinoza") String search,
+            @RequestParam(required = false) @Parameter(description = "Area identifier", example = "1") Long areaId,
+            @RequestParam(required = false) @Parameter(description = "Employment status", example = "ACTIVE") String status,
+            @RequestParam(required = false) @Parameter(description = "Position identifier", example = "1") Long positionId) {
+        var employmentStatus = status == null || status.isBlank()
+                ? null
+                : EmploymentStatus.valueOf(status.trim().toUpperCase(Locale.ROOT));
+        var employees = employeeQueryService.handle(new SearchEmployeesQuery(search, areaId, employmentStatus, positionId));
         var employeeResources = employees.stream().map(EmployeeResourceFromEntityAssembler::toResourceFromEntity).toList();
         return ResponseEntity.ok(employeeResources);
     }
@@ -102,18 +117,21 @@ public class EmployeesController {
     /**
      * Get organization chart.
      *
+     * @param areaId the area id
      * @return the HTTP response
      */
     @GetMapping("/organization-chart")
     @Operation(summary = "Get organization chart",
-            description = "Builds the organization chart from the direct manager of each employee that is not TERMINATED.")
+            description = "Builds the organization chart from the direct manager of each employee that is not TERMINATED. "
+                    + "Employees whose direct manager is no longer active are listed as pending reassignment.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Organization chart retrieved successfully",
-                    content = @Content(schema = @Schema(implementation = OrganizationChartNodeResource.class)))
+                    content = @Content(schema = @Schema(implementation = OrganizationChartResource.class)))
     })
-    public ResponseEntity<List<OrganizationChartNodeResource>> getOrganizationChart() {
+    public ResponseEntity<OrganizationChartResource> getOrganizationChart(
+            @RequestParam(required = false) @Parameter(description = "Show only this area", example = "1") Long areaId) {
         var employees = employeeQueryService.handle(new GetOrganizationChartQuery());
-        return ResponseEntity.ok(OrganizationChartNodeResourceFromEntityAssembler.toResourcesFromEntities(employees));
+        return ResponseEntity.ok(OrganizationChartNodeResourceFromEntityAssembler.toResourceFromEntities(employees, areaId));
     }
 
     /**

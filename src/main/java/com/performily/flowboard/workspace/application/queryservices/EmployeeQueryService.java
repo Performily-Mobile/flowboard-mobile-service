@@ -23,12 +23,20 @@ public interface EmployeeQueryService {
     Optional<Employee> handle(GetEmployeeByIdQuery query);
 
     /**
-     * Handles retrieval of all employees.
+     * Handles the employee search with optional filters.
      *
-     * @param query query marker
-     * @return list of employees
+     * @param query search query with the optional filters
+     * @return list of employees ordered by last name
      */
-    List<Employee> handle(GetAllEmployeesQuery query);
+    List<Employee> handle(SearchEmployeesQuery query);
+
+    /**
+     * Handles the count of ACTIVE employees of an area.
+     *
+     * @param query area-id query
+     * @return number of active employees of the area
+     */
+    long handle(GetActiveEmployeeCountByAreaIdQuery query);
 
     /**
      * Handles retrieval of the direct subordinates of an employee.

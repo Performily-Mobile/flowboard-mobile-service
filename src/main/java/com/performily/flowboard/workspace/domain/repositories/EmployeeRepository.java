@@ -32,6 +32,18 @@ public interface EmployeeRepository {
     List<Employee> findAll();
 
     /**
+     * Finds the employees that match the given filters, ordered by last name.
+     * Every filter is optional.
+     *
+     * @param search     text to search in the names or the identity document number, or null
+     * @param areaId     the area id, or null
+     * @param status     the {@link EmploymentStatus} instance, or null
+     * @param positionId the position id, or null
+     * @return the list of employees
+     */
+    List<Employee> findAllByFilters(String search, Long areaId, EmploymentStatus status, Long positionId);
+
+    /**
      * Finds the employees whose direct manager is the given employee.
      *
      * @param managerId the manager id
@@ -97,6 +109,15 @@ public interface EmployeeRepository {
      * @return true if it has
      */
     boolean existsByAreaIdAndStatus(Long areaId, EmploymentStatus status);
+
+    /**
+     * Counts the employees of an area with the given status.
+     *
+     * @param areaId the area id
+     * @param status the {@link EmploymentStatus} instance
+     * @return the number of employees
+     */
+    long countByAreaIdAndStatus(Long areaId, EmploymentStatus status);
 
     /**
      * Checks whether an employee has subordinates whose status is different from the given one.

@@ -6,9 +6,11 @@ import com.performily.flowboard.shared.interfaces.rest.transform.ErrorResponseAs
 import com.performily.flowboard.shared.interfaces.rest.transform.ResponseEntityAssembler;
 import com.performily.flowboard.workspace.application.commandservices.AreaCommandService;
 import com.performily.flowboard.workspace.application.queryservices.AreaQueryService;
+import com.performily.flowboard.workspace.application.queryservices.EmployeeQueryService;
 import com.performily.flowboard.workspace.domain.model.commands.ActivateAreaCommand;
 import com.performily.flowboard.workspace.domain.model.commands.DeactivateAreaCommand;
 import com.performily.flowboard.workspace.domain.model.entities.Area;
+import com.performily.flowboard.workspace.domain.model.queries.GetActiveEmployeeCountByAreaIdQuery;
 import com.performily.flowboard.workspace.domain.model.queries.GetAllAreasQuery;
 import com.performily.flowboard.workspace.domain.model.queries.GetAreaByIdQuery;
 import com.performily.flowboard.workspace.interfaces.rest.resources.AreaResource;
@@ -46,16 +48,20 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 public class AreasController {
     private final AreaCommandService areaCommandService;
     private final AreaQueryService areaQueryService;
+    private final EmployeeQueryService employeeQueryService;
 
     /**
      * Constructor.
      *
      * @param areaCommandService the {@link AreaCommandService} instance
      * @param areaQueryService the {@link AreaQueryService} instance
+     * @param employeeQueryService the {@link EmployeeQueryService} instance, used to count the active employees
      */
-    public AreasController(AreaCommandService areaCommandService, AreaQueryService areaQueryService) {
+    public AreasController(AreaCommandService areaCommandService, AreaQueryService areaQueryService,
+                           EmployeeQueryService employeeQueryService) {
         this.areaCommandService = areaCommandService;
         this.areaQueryService = areaQueryService;
+        this.employeeQueryService = employeeQueryService;
     }
 
     /**
@@ -80,7 +86,7 @@ public class AreasController {
                         .orElseGet(() -> Result.failure(ApplicationError.notFound("Area", areaId.toString()))));
         return ResponseEntityAssembler.toResponseEntityFromResult(
                 result,
-                AreaResourceFromEntityAssembler::toResourceFromEntity,
+                this::toResource,
                 HttpStatus.CREATED);
     }
 
@@ -97,7 +103,7 @@ public class AreasController {
     })
     public ResponseEntity<List<AreaResource>> getAllAreas() {
         var areas = areaQueryService.handle(new GetAllAreasQuery());
-        var areaResources = areas.stream().map(AreaResourceFromEntityAssembler::toResourceFromEntity).toList();
+        var areaResources = areas.stream().map(this::toResource).toList();
         return ResponseEntity.ok(areaResources);
     }
 
@@ -120,7 +126,7 @@ public class AreasController {
         if (area.isEmpty()) {
             return ErrorResponseAssembler.toErrorResponseFromApplicationError(ApplicationError.notFound("Area", areaId.toString()));
         }
-        return ResponseEntity.ok(AreaResourceFromEntityAssembler.toResourceFromEntity(area.get()));
+        return ResponseEntity.ok(toResource(area.get()));
     }
 
     /**
@@ -145,7 +151,7 @@ public class AreasController {
         var renameAreaCommand = RenameAreaCommandFromResourceAssembler.toCommandFromResource(areaId, resource);
         var result = areaCommandService.handle(renameAreaCommand);
         return ResponseEntityAssembler.toResponseEntityFromResult(
-                result, AreaResourceFromEntityAssembler::toResourceFromEntity, HttpStatus.OK);
+                result, this::toResource, HttpStatus.OK);
     }
 
     /**
@@ -166,7 +172,7 @@ public class AreasController {
             @PathVariable @Parameter(description = "Area unique identifier", example = "1", required = true) Long areaId) {
         var result = areaCommandService.handle(new ActivateAreaCommand(areaId));
         return ResponseEntityAssembler.toResponseEntityFromResult(
-                result, AreaResourceFromEntityAssembler::toResourceFromEntity, HttpStatus.OK);
+                result, this::toResource, HttpStatus.OK);
     }
 
     /**
@@ -187,6 +193,17 @@ public class AreasController {
             @PathVariable @Parameter(description = "Area unique identifier", example = "1", required = true) Long areaId) {
         var result = areaCommandService.handle(new DeactivateAreaCommand(areaId));
         return ResponseEntityAssembler.toResponseEntityFromResult(
-                result, AreaResourceFromEntityAssembler::toResourceFromEntity, HttpStatus.OK);
+                result, this::toResource, HttpStatus.OK);
+    }
+
+    /**
+     * Converts an area to its resource, adding its number of active employees.
+     *
+     * @param area the {@link Area} instance
+     * @return the {@link AreaResource}
+     */
+    private AreaResource toResource(Area area) {
+        var activeEmployees = employeeQueryService.handle(new GetActiveEmployeeCountByAreaIdQuery(area.getId()));
+        return AreaResourceFromEntityAssembler.toResourceFromEntity(area, activeEmployees);
     }
 }

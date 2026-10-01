@@ -21,6 +21,29 @@ import java.util.List;
 @Repository
 public interface EmployeePersistenceRepository extends JpaRepository<EmployeePersistenceEntity, Long> {
     /**
+     * Finds the employees that match the given filters, ordered by last name.
+     * A null filter is ignored.
+     *
+     * @param search     lower-case LIKE pattern for the names or the document number, or null
+     * @param areaId     the area id, or null
+     * @param status     the {@link EmploymentStatus} instance, or null
+     * @param positionId the position id, or null
+     * @return the list of employees
+     */
+    @Query("select employee from EmployeePersistenceEntity employee "
+            + "where (:areaId is null or employee.area.id = :areaId) "
+            + "and (:status is null or employee.status = :status) "
+            + "and (:positionId is null or employee.position.id = :positionId) "
+            + "and (:search is null or lower(employee.name.firstName) like :search "
+            + "or lower(employee.name.lastName) like :search "
+            + "or lower(employee.identityDocument.number) like :search) "
+            + "order by employee.name.lastName asc, employee.name.firstName asc")
+    List<EmployeePersistenceEntity> findAllByFilters(@Param("search") String search,
+                                                     @Param("areaId") Long areaId,
+                                                     @Param("status") EmploymentStatus status,
+                                                     @Param("positionId") Long positionId);
+
+    /**
      * Finds the employees whose direct manager is the given employee.
      *
      * @param managerId the manager id
