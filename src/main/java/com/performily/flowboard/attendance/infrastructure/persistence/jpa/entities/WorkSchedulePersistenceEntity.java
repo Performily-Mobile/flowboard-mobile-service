@@ -1,6 +1,7 @@
 package com.performily.flowboard.attendance.infrastructure.persistence.jpa.entities;
 
 import jakarta.persistence.*; 
+import java.time.DayOfWeek;
 import java.time.LocalTime; 
 import java.util.*;
 
