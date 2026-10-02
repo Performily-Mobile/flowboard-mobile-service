@@ -19,20 +19,24 @@ public class Punch {
     }
 
     public Punch(Long id, Long employeeId, LocalDateTime punchedAt, PunchType type, Long attendanceRecordId) {
-        this.id=id; this.employeeId=employeeId; this.punchedAt=punchedAt; this.type=type; this.attendanceRecordId=attendanceRecordId;
+        this.id = id; 
+        this.employeeId = employeeId; 
+        this.punchedAt = punchedAt; 
+        this.type = type; 
+        this.attendanceRecordId = attendanceRecordId;
     }
 
-    public boolean occurredOn(LocalDate date) { return punchedAt.toLocalDate().equals(date); }
+    public boolean occurredOn(LocalDate date) { 
+        return punchedAt.toLocalDate().equals(date); 
+    }
+
+    public Long getId() { return id; } 
+    public void setId(Long id) { this.id = id; }
     
-    public Long getId(){return id;} public void setId(Long id){this.id=id;}
+    public Long getEmployeeId() { return employeeId; } 
+    public LocalDateTime getPunchedAt() { return punchedAt; } 
+    public PunchType getType() { return type; }
     
-    public Long getEmployeeId(){return employeeId;} 
-    
-    public LocalDateTime getPunchedAt(){return punchedAt;} 
-    
-    public PunchType getType(){return type;}
-    
-    public Long getAttendanceRecordId(){return attendanceRecordId;} 
-    
-    public void setAttendanceRecordId(Long id){this.attendanceRecordId=id;}
+    public Long getAttendanceRecordId() { return attendanceRecordId; } 
+    public void setAttendanceRecordId(Long id) { this.attendanceRecordId = id; }
 }
