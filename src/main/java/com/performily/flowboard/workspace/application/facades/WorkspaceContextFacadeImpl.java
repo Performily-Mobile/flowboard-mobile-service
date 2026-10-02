@@ -28,6 +28,6 @@ public class WorkspaceContextFacadeImpl implements WorkspaceContextFacade {
     public List<Employee> findAllActiveEmployees() {
         return employeeRepository.findAllByStatusNot(EmploymentStatus.TERMINATED).stream()
             .filter(e -> e.getStatus() == EmploymentStatus.ACTIVE)
-            .ToList();
+            .toList();
     } 
 }
