@@ -6,8 +6,10 @@ import org.jspecify.annotations.NullMarked;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.text.MessageFormat;
 import java.util.MissingResourceException;
@@ -61,6 +63,36 @@ public class GlobalExceptionHandler {
         var applicationError = ApplicationError.validationError(
                 resolveMessageOrDefault("validation.request.argument", "request-argument"),
                 ex.getMessage() != null ? ex.getMessage() : resolveMessageOrDefault("validation.request.failed", "Request validation failed")
+        );
+        return ErrorResponseAssembler.toErrorResponseFromApplicationError(applicationError);
+    }
+
+    /**
+     * Handles a missing header or request parameter, for example X-Employee-Id.
+     *
+     * @param ex the binding exception
+     * @return error response with BAD_REQUEST status
+     */
+    @ExceptionHandler(ServletRequestBindingException.class)
+    public ResponseEntity<?> handleServletRequestBindingException(ServletRequestBindingException ex) {
+        var applicationError = ApplicationError.validationError(
+                resolveMessageOrDefault("validation.request.binding", "Missing or invalid request parameter"),
+                ex.getMessage() != null ? ex.getMessage() : resolveMessageOrDefault("validation.request.failed", "Request validation failed")
+        );
+        return ErrorResponseAssembler.toErrorResponseFromApplicationError(applicationError);
+    }
+
+    /**
+     * Handles a path, query or header value with the wrong type, for example a text where a number is expected.
+     *
+     * @param ex the type mismatch exception
+     * @return error response with BAD_REQUEST status
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<?> handleMethodArgumentTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        var applicationError = ApplicationError.validationError(
+                ex.getName(),
+                resolveMessageOrDefault("validation.request.binding", "Missing or invalid request parameter")
         );
         return ErrorResponseAssembler.toErrorResponseFromApplicationError(applicationError);
     }
