@@ -33,15 +33,20 @@ public class VacationBalanceInitializer {
 
     @EventListener(ApplicationReadyEvent.class)
     public void openMissingBalances() {
-        int opened = 0;
-        for (var employee : externalWorkspaceService.fetchAllActiveEmployees()) {
-            if (!vacationBalanceRepository.existsByEmployeeId(employee.id())
-                    && vacationBalanceCommandService.handle(new OpenVacationBalanceCommand(employee.id())).isSuccess()) {
-                opened++;
+        try {
+            int opened = 0;
+            for (var employee : externalWorkspaceService.fetchAllActiveEmployees()) {
+                if (!vacationBalanceRepository.existsByEmployeeId(employee.id())
+                        && vacationBalanceCommandService.handle(new OpenVacationBalanceCommand(employee.id())).isSuccess()) {
+                    opened++;
+                }
             }
-        }
-        if (opened > 0) {
-            LOGGER.info("Vacation balances opened for {} existing employees", opened);
+            if (opened > 0) {
+                LOGGER.info("Vacation balances opened for {} existing employees", opened);
+            }
+        } catch (RuntimeException exception) {
+            // A seeding problem must never stop the application from starting.
+            LOGGER.warn("Vacation balances could not be opened at startup: {}", exception.getMessage(), exception);
         }
     }
 }

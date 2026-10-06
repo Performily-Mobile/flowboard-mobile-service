@@ -41,9 +41,7 @@ public final class EmployeePersistenceAssembler {
                 new IdentityDocument(identityDocument.getType(), identityDocument.getNumber()),
                 entity.getBirthDate(),
                 new ContactInfo(entity.getEmail(), entity.getPhoneNumber()),
-                address == null || address.getStreet() == null
-                        ? null
-                        : new Address(address.getStreet(), address.getDistrict(), address.getProvince(), address.getDepartment()),
+                toDomainAddress(address),
                 entity.getContractType(),
                 new EmploymentPeriod(period.getHireDate(), period.getContractEndDate()),
                 entity.getStatus(),
@@ -62,6 +60,25 @@ public final class EmployeePersistenceAssembler {
                 entity.getUpdatedAt() == null
                         ? null
                         : LocalDateTime.ofInstant(entity.getUpdatedAt().toInstant(), ZoneId.systemDefault()));
+    }
+
+    /**
+     * Rebuilds the optional address. An empty or incomplete stored address
+     * (some columns blank) is read as "no address" instead of failing the load.
+     */
+    private static Address toDomainAddress(AddressPersistenceEmbeddable address) {
+        if (address == null
+                || isBlank(address.getStreet())
+                || isBlank(address.getDistrict())
+                || isBlank(address.getProvince())
+                || isBlank(address.getDepartment())) {
+            return null;
+        }
+        return new Address(address.getStreet(), address.getDistrict(), address.getProvince(), address.getDepartment());
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 
     /**
