@@ -31,17 +31,27 @@ public class VacationBalanceInitializer {
         this.externalWorkspaceService = externalWorkspaceService;
     }
 
+    /**
+     * Opens a vacation balance for every active employee that does not have one yet.
+     *
+     * <p>Any failure is logged and swallowed: a seeding problem must never stop the application
+     * from starting.
+     */
     @EventListener(ApplicationReadyEvent.class)
     public void openMissingBalances() {
-        int opened = 0;
-        for (var employee : externalWorkspaceService.fetchAllActiveEmployees()) {
-            if (!vacationBalanceRepository.existsByEmployeeId(employee.id())
-                    && vacationBalanceCommandService.handle(new OpenVacationBalanceCommand(employee.id())).isSuccess()) {
-                opened++;
+        try {
+            int opened = 0;
+            for (var employee : externalWorkspaceService.fetchAllActiveEmployees()) {
+                if (!vacationBalanceRepository.existsByEmployeeId(employee.id())
+                        && vacationBalanceCommandService.handle(new OpenVacationBalanceCommand(employee.id())).isSuccess()) {
+                    opened++;
+                }
             }
-        }
-        if (opened > 0) {
-            LOGGER.info("Vacation balances opened for {} existing employees", opened);
+            if (opened > 0) {
+                LOGGER.info("Vacation balances opened for {} existing employees", opened);
+            }
+        } catch (RuntimeException exception) {
+            LOGGER.warn("Vacation balances could not be opened at startup: {}", exception.getMessage(), exception);
         }
     }
 }
