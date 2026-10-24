@@ -5,7 +5,7 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity 
-@Table(name="punches") 
+@Table(name="punches", indexes = @Index(name="idx_punch_employee_punched_at", columnList="employee_id,punched_at")) 
 public class PunchPersistenceEntity {
     
     public PunchPersistenceEntity() {}

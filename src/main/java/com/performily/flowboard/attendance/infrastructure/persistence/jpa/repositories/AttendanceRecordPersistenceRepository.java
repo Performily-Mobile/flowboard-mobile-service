@@ -11,5 +11,8 @@ public interface AttendanceRecordPersistenceRepository extends JpaRepository<Att
     
     List<AttendanceRecordPersistenceEntity> findAllByEmployeeIdAndWorkDateBetween(Long employeeId, LocalDate from, LocalDate to); 
     
+    List<AttendanceRecordPersistenceEntity> findAllByEmployeeIdInAndWorkDate(Collection<Long> ids, LocalDate date);
+    List<AttendanceRecordPersistenceEntity> findAllByEmployeeIdInAndWorkDateBetween(Collection<Long> ids, LocalDate from, LocalDate to);
+
     boolean existsByEmployeeIdAndWorkDate(Long employeeId, LocalDate workDate);
 }

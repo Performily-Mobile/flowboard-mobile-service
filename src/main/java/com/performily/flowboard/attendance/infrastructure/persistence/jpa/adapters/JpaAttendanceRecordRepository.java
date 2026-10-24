@@ -59,6 +59,16 @@ public class JpaAttendanceRecordRepository implements AttendanceRecordRepository
         return repository.findAllByEmployeeIdAndWorkDateBetween(e, f, t).stream().map(this::toDomain).toList();
     } 
 
+    public List<AttendanceRecord> findAllByEmployeeIdsAndWorkDate(Collection<Long> ids, LocalDate date) {
+        if (ids.isEmpty()) return List.of();
+        return repository.findAllByEmployeeIdInAndWorkDate(ids, date).stream().map(this::toDomain).toList();
+    }
+
+    public List<AttendanceRecord> findAllByEmployeeIdsAndWorkDateBetween(Collection<Long> ids, LocalDate from, LocalDate to) {
+        if (ids.isEmpty()) return List.of();
+        return repository.findAllByEmployeeIdInAndWorkDateBetween(ids, from, to).stream().map(this::toDomain).toList();
+    }
+
     public boolean existsByEmployeeIdAndWorkDate(Long e, LocalDate d) {
         return repository.existsByEmployeeIdAndWorkDate(e, d);
     } 
