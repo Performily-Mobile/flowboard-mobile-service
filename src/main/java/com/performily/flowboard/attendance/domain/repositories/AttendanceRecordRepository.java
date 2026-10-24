@@ -11,6 +11,9 @@ public interface AttendanceRecordRepository {
     
     boolean existsByEmployeeIdAndWorkDate(Long employeeId, LocalDate workDate);
     
+    List<AttendanceRecord> findAllByEmployeeIdsAndWorkDate(Collection<Long> ids, LocalDate date);
+    List<AttendanceRecord> findAllByEmployeeIdsAndWorkDateBetween(Collection<Long> ids, LocalDate from, LocalDate to);
+
     List<AttendanceRecord> findAll();
     
     AttendanceRecord save(AttendanceRecord record);

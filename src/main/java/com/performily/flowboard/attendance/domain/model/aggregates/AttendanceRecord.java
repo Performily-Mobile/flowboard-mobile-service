@@ -87,6 +87,15 @@ public class AttendanceRecord extends AbstractDomainAggregateRoot<AttendanceReco
         return r;
     }
 
+    public void recalculateFrom(List<Punch> punches, WorkSchedule schedule) {
+        var recalculated = fromPunches(employeeId, workDate, punches, schedule);
+        checkInTime = recalculated.checkInTime;
+        checkOutTime = recalculated.checkOutTime;
+        workedHours = recalculated.workedHours;
+        if (status != AttendanceStatus.JUSTIFIED) status = recalculated.status;
+        recalculated.domainEvents().forEach(this::registerDomainEvent);
+    }
+
     public void justify(String reason, String evidenceUrl) { 
         if (reason == null || reason.isBlank()) 
             throw new IllegalArgumentException("Justification reason is required"); 
