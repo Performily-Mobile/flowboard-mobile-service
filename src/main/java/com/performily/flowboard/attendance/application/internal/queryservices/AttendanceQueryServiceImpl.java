@@ -28,10 +28,13 @@ public class AttendanceQueryServiceImpl implements AttendanceQueryService {
     }
 
     public List<AttendanceRecord> handle(GetDailyAttendanceByAreaQuery q) {
-        return workspace.findActiveEmployeesByAreaId(q.areaId()).stream()
-            .map(e -> records.findByEmployeeIdAndWorkDate(e.getId(), q.workDate()).orElse(null))
-            .filter(Objects::nonNull)
-            .toList();
+        // TODO WS-1: replace full employee aggregates with lightweight summaries.
+        var employees = workspace.findActiveEmployeesByAreaId(q.areaId());
+        var ids = employees.stream().map(e -> e.getId()).toList();
+        var byEmployee = new HashMap<Long, AttendanceRecord>();
+        records.findAllByEmployeeIdsAndWorkDate(ids, q.workDate())
+            .forEach(r -> byEmployee.put(r.getEmployeeId(), r));
+        return ids.stream().map(byEmployee::get).filter(Objects::nonNull).toList();
     }
 
     public List<WorkSchedule> getAllWorkSchedules() {
@@ -50,20 +53,25 @@ public class AttendanceQueryServiceImpl implements AttendanceQueryService {
         long on = 0, late = 0, abs = 0, inc = 0, just = 0; 
         double worked = 0, ot = 0; 
         
-        for (var e : workspace.findActiveEmployeesByAreaId(areaId)) {
-            for (var r : records.findAllByEmployeeIdAndWorkDateBetween(e.getId(), from, to)) {
+        // One attendance query for the whole area, preserving the previous summation order.
+        var ids = workspace.findActiveEmployeesByAreaId(areaId).stream().map(e -> e.getId()).toList();
+        var all = records.findAllByEmployeeIdsAndWorkDateBetween(ids, from, to);
+        var grouped = new HashMap<Long, List<AttendanceRecord>>();
+        all.forEach(r -> grouped.computeIfAbsent(r.getEmployeeId(), ignored -> new ArrayList<>()).add(r));
+        for (var id : ids) {
+            for (var r : grouped.getOrDefault(id, List.of())) {
                 switch (r.getStatus()) {
                     case ON_TIME -> on++;
                     case LATE -> late++;
                     case ABSENT -> abs++;
                     case INCOMPLETE -> inc++;
                     case JUSTIFIED -> just++;
-                } 
-                worked += r.getWorkedHours().toDecimalHours(); 
+                }
+                worked += r.getWorkedHours().toDecimalHours();
                 ot += r.getWorkedHours().overtimeDecimalHours();
             }
-        } 
-        
+        }
+
         return new com.performily.flowboard.attendance.interfaces.rest.resources.AttendanceAreaSummaryResource(
             areaId, on, late, abs, inc, just, worked, ot
         );

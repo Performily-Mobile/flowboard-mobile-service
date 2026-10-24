@@ -11,6 +11,7 @@ import com.performily.flowboard.attendance.domain.repositories.*;
 import com.performily.flowboard.shared.application.result.*;
 import com.performily.flowboard.workspace.application.facades.WorkspaceContextFacade;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.*; 
 import java.util.*;
@@ -34,6 +35,7 @@ public class AttendanceCommandServiceImpl implements AttendanceCommandService {
         this.workspaceContextFacade = f;
     }
 
+    @Transactional
     public Result<Long, ApplicationError> handle(RegisterPunchCommand c) {
         if (c.employeeId() == null || c.punchedAt() == null || c.type() == null) {
             return Result.failure(ApplicationError.validationError("punch", "employeeId, punchedAt and type are required"));
@@ -59,11 +61,12 @@ public class AttendanceCommandServiceImpl implements AttendanceCommandService {
             }
             
             return Result.success(punch.getId());
-        } catch (Exception e) {
-            return Result.failure(ApplicationError.unexpected("register-punch", e.getMessage()));
+        } catch (RuntimeException e) {
+            throw e; // Propagate to the global error handler and trigger rollback.
         }
     }
 
+    @Transactional
     public Result<AttendanceRecord, ApplicationError> handle(BuildDailyAttendanceCommand c) {
         var employee = workspaceContextFacade.findEmployeeById(c.employeeId()); 
         if (employee.isEmpty()) {
@@ -99,7 +102,9 @@ public class AttendanceCommandServiceImpl implements AttendanceCommandService {
 
     private AttendanceRecord buildAndSave(Long employeeId, LocalDate date, WorkSchedule schedule) {
         var punches = punchRepository.findAllByEmployeeIdAndDate(employeeId, date);
-        var record = AttendanceRecord.fromPunches(employeeId, date, punches, schedule);
+        var existing = attendanceRecordRepository.findByEmployeeIdAndWorkDate(employeeId, date);
+        var record = existing.orElseGet(() -> AttendanceRecord.fromPunches(employeeId, date, punches, schedule));
+        if (existing.isPresent()) record.recalculateFrom(punches, schedule);
         return attendanceRecordRepository.save(record);
     }
 
