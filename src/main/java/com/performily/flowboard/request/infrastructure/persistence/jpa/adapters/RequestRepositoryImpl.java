@@ -5,6 +5,7 @@ import com.performily.flowboard.request.domain.model.valueobjects.ApproverType;
 import com.performily.flowboard.request.domain.model.valueobjects.RequestStatus;
 import com.performily.flowboard.request.domain.repositories.RequestRepository;
 import com.performily.flowboard.request.infrastructure.persistence.jpa.assemblers.RequestPersistenceAssembler;
+import com.performily.flowboard.request.infrastructure.persistence.jpa.entities.RequestPersistenceEntity;
 import com.performily.flowboard.request.infrastructure.persistence.jpa.repositories.RequestPersistenceRepository;
 import com.performily.flowboard.request.infrastructure.persistence.jpa.repositories.RequestTypePersistenceRepository;
 import org.springframework.context.ApplicationEventPublisher;
@@ -21,10 +22,19 @@ import java.util.Optional;
  * @summary
  * Repository adapter that bridges the request domain repository port with Spring Data JPA.
  *
+ * Also acts as the event-publishing boundary: after the {@link Request} is persisted,
+ * the domain events registered by the aggregate are dispatched via Spring's
+ * {@link ApplicationEventPublisher}. For a new request, a RequestSubmittedEvent is
+ * added once the JPA-assigned id is available.
+ *
  * Methods run inside a transaction so the lazy collections (form values,
  * attachments, history and the fields of the type) can be read while assembling
  * the domain object. The read methods use read-only transactions, so Hibernate
  * does not keep a copy of each loaded entity to look for changes.
+ *
+ * A new request is converted to a new entity. An existing request is saved by
+ * loading its stored entity and copying only what changed over it, so the
+ * attachments and form values that did not change are not deleted and inserted again.
  *
  * @since 1.0.0
  */
@@ -96,9 +106,11 @@ public class RequestRepositoryImpl implements RequestRepository {
         boolean isNew = request.getId() == null;
         var pendingEvents = new ArrayList<>(request.domainEvents());
         request.clearDomainEvents();
-        var requestType = requestTypePersistenceRepository.getReferenceById(request.getRequestType().getId());
-        var savedEntity = requestPersistenceRepository.saveAndFlush(
-                RequestPersistenceAssembler.toPersistenceFromDomain(request, requestType));
+        var entity = isNew
+                ? RequestPersistenceAssembler.toPersistenceFromDomain(request,
+                        requestTypePersistenceRepository.getReferenceById(request.getRequestType().getId()))
+                : updateStoredEntity(request);
+        var savedEntity = requestPersistenceRepository.saveAndFlush(entity);
         var savedRequest = RequestPersistenceAssembler.toDomainFromPersistence(savedEntity);
         if (isNew) {
             savedRequest.onSubmitted();
@@ -119,5 +131,19 @@ public class RequestRepositoryImpl implements RequestRepository {
     @Transactional(readOnly = true)
     public boolean existsByRequestTypeId(Long requestTypeId) {
         return requestPersistenceRepository.existsByRequestTypeId(requestTypeId);
+    }
+
+    /**
+     * Loads the stored entity of an existing request and copies the domain state over it.
+     *
+     * @param request the {@link Request} instance with id
+     * @return the stored entity, already updated
+     * @throws IllegalArgumentException if the request does not exist
+     */
+    private RequestPersistenceEntity updateStoredEntity(Request request) {
+        var entity = requestPersistenceRepository.findWithRequestTypeById(request.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Request %d not found".formatted(request.getId())));
+        RequestPersistenceAssembler.updatePersistenceFromDomain(request, entity);
+        return entity;
     }
 }

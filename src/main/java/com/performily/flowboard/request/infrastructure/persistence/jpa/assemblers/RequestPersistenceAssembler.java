@@ -16,6 +16,8 @@ import com.performily.flowboard.shared.infrastructure.persistence.jpa.embeddable
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -23,6 +25,11 @@ import java.util.stream.Collectors;
  * @summary
  * Static assembler between request domain and persistence representations,
  * including the form values, the attachments and the history.
+ *
+ * A new request is converted with {@link #toPersistenceFromDomain}. An existing
+ * request is copied over its stored entity with {@link #updatePersistenceFromDomain},
+ * so Hibernate only writes what changed: the attachments that did not change keep
+ * their id and upload date, and only the new history entries are inserted.
  *
  * @since 1.0.0
  */
@@ -63,7 +70,7 @@ public final class RequestPersistenceAssembler {
     }
 
     /**
-     * Converts a domain object to its persistence representation.
+     * Converts a new domain object (without id) to its persistence representation.
      *
      * @param request     the {@link Request} instance
      * @param requestType the persistence entity of its request type, already managed by JPA
@@ -72,36 +79,70 @@ public final class RequestPersistenceAssembler {
     public static RequestPersistenceEntity toPersistenceFromDomain(Request request, RequestTypePersistenceEntity requestType) {
         if (request == null) return null;
         var entity = new RequestPersistenceEntity();
-        if (request.getId() != null) {
-            entity.setId(request.getId());
-        }
         entity.setRequesterId(request.getRequesterId().value());
         entity.setRequestType(requestType);
-        entity.setStatus(request.getStatus());
-        var period = request.getPeriod();
-        if (period != null) {
-            entity.setStartDate(period.startDate());
-            entity.setEndDate(period.endDate());
-            entity.setStartTime(period.startTime());
-            entity.setEndTime(period.endTime());
-        }
-        entity.setApproverType(request.getApprover().type());
-        entity.setApproverEmployeeId(request.getApprover().employeeId() == null
-                ? null
-                : request.getApprover().employeeId().value());
         entity.setSubmittedAt(request.getSubmittedAt());
-        entity.setFieldValues(request.getFieldValues().stream()
+        updatePersistenceFromDomain(request, entity);
+        return entity;
+    }
+
+    /**
+     * Copies the state of a domain object over its persistence entity.
+     *
+     * Requester, request type and submission date never change after the
+     * submission, so they are not copied. For the collections:
+     * - form values: the keys that are no longer present are removed and only the
+     *   values that changed are put;
+     * - attachments: the files that did not change are kept, the removed ones are
+     *   deleted and only the new ones are inserted;
+     * - history: it only grows, so only the entries without id are added.
+     *
+     * @param request the {@link Request} instance
+     * @param entity  the {@link RequestPersistenceEntity} to update
+     */
+    public static void updatePersistenceFromDomain(Request request, RequestPersistenceEntity entity) {
+        entity.setStatus(request.getStatus());
+
+        var period = request.getPeriod();
+        entity.setStartDate(period == null ? null : period.startDate());
+        entity.setEndDate(period == null ? null : period.endDate());
+        entity.setStartTime(period == null ? null : period.startTime());
+        entity.setEndTime(period == null ? null : period.endTime());
+
+        var approver = request.getApprover();
+        entity.setApproverType(approver.type());
+        entity.setApproverEmployeeId(approver.employeeId() == null ? null : approver.employeeId().value());
+
+        updateFieldValues(request.getFieldValues(), entity.getFieldValues());
+        updateAttachments(request.getAttachments(), entity);
+        addNewHistoryEntries(request.getHistory(), entity);
+    }
+
+    private static void updateFieldValues(List<FieldValue> values, Map<String, String> stored) {
+        var wanted = values.stream()
                 .filter(value -> !value.isEmpty())
                 .collect(Collectors.toMap(value -> value.key().value(), FieldValue::value,
-                        (first, second) -> second, LinkedHashMap::new)));
+                        (first, second) -> second, LinkedHashMap::new));
+        stored.keySet().retainAll(wanted.keySet());
+        wanted.forEach((key, value) -> {
+            if (!value.equals(stored.get(key))) {
+                stored.put(key, value);
+            }
+        });
+    }
+
+    private static void updateAttachments(List<FileReference> files, RequestPersistenceEntity entity) {
+        var pending = new ArrayList<>(files);
+        entity.getAttachments().removeIf(attachment -> !pending.remove(toDomainFromPersistence(attachment.getFile())));
         var now = LocalDateTime.now();
-        entity.setAttachments(request.getAttachments().stream()
-                .map(file -> toPersistenceFromDomain(file, entity, now))
-                .collect(Collectors.toCollection(ArrayList::new)));
-        entity.setHistory(request.getHistory().stream()
-                .map(history -> toPersistenceFromDomain(history, entity))
-                .collect(Collectors.toCollection(ArrayList::new)));
-        return entity;
+        pending.forEach(file -> entity.getAttachments().add(toPersistenceFromDomain(file, entity, now)));
+    }
+
+    private static void addNewHistoryEntries(List<RequestHistory> history, RequestPersistenceEntity entity) {
+        history.stream()
+                .filter(entry -> entry.getId() == null)
+                .map(entry -> toPersistenceFromDomain(entry, entity))
+                .forEach(entity.getHistory()::add);
     }
 
     private static FileReference toDomainFromPersistence(FileReferencePersistenceEmbeddable file) {
@@ -132,9 +173,6 @@ public final class RequestPersistenceAssembler {
     private static RequestHistoryPersistenceEntity toPersistenceFromDomain(RequestHistory history,
                                                                           RequestPersistenceEntity request) {
         var entity = new RequestHistoryPersistenceEntity();
-        if (history.getId() != null) {
-            entity.setId(history.getId());
-        }
         entity.setRequest(request);
         entity.setPreviousStatus(history.getPreviousStatus());
         entity.setNewStatus(history.getNewStatus());
