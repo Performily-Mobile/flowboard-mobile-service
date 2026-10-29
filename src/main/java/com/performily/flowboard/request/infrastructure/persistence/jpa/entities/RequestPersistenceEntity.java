@@ -29,7 +29,8 @@ import java.util.Map;
  * Performance:
  * - idx_request_requester_status_date covers the requests of an employee (with or
  *   without status) and the overlap check; idx_request_approver_status_date covers
- *   the pending requests of a direct manager and of the HR staff. Production uses
+ *   the pending requests of a direct manager and of the HR staff; idx_request_submitted_at
+ *   covers the list of all the requests, newest first. Production uses
  *   ddl-auto=validate, so these indexes are created by hand in the database.
  * - The request type is LAZY; the queries of the repository bring it in the same
  *   query with join fetch.
@@ -40,6 +41,7 @@ import java.util.Map;
  */
 @Entity
 @Table(name = "requests", indexes = {
+        @Index(name = "idx_request_submitted_at", columnList = "submitted_at"),
         @Index(name = "idx_request_requester_status_date", columnList = "requester_id, status, submitted_at"),
         @Index(name = "idx_request_approver_status_date",
                 columnList = "approver_type, status, approver_employee_id, submitted_at")

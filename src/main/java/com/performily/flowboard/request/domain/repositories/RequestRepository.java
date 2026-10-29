@@ -26,6 +26,17 @@ public interface RequestRepository {
     Optional<Request> findById(Long id);
 
     /**
+     * Finds one page of the requests of every employee, newest first. All the filters are optional.
+     *
+     * @param requesterId   the requester filter, or null for all
+     * @param status        the status filter, or null for all
+     * @param requestTypeId the request type filter, or null for all
+     * @param page          the page to read
+     * @return the page of requests
+     */
+    PagedResult<Request> findAll(Long requesterId, RequestStatus status, Long requestTypeId, PageCriteria page);
+
+    /**
      * Finds one page of the requests of an employee, newest first.
      *
      * @param requesterId the requester id

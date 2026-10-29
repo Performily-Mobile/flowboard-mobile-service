@@ -2,6 +2,7 @@ package com.performily.flowboard.request.application.internal.queryservices;
 
 import com.performily.flowboard.request.application.queryservices.RequestQueryService;
 import com.performily.flowboard.request.domain.model.aggregates.Request;
+import com.performily.flowboard.request.domain.model.queries.GetAllRequestsQuery;
 import com.performily.flowboard.request.domain.model.queries.GetPendingRequestsByApproverIdQuery;
 import com.performily.flowboard.request.domain.model.queries.GetPendingRequestsForHrStaffQuery;
 import com.performily.flowboard.request.domain.model.queries.GetRequestByIdQuery;
@@ -35,6 +36,11 @@ public class RequestQueryServiceImpl implements RequestQueryService {
     @Override
     public Optional<Request> handle(GetRequestByIdQuery query) {
         return requestRepository.findById(query.requestId());
+    }
+
+    @Override
+    public PagedResult<Request> handle(GetAllRequestsQuery query) {
+        return requestRepository.findAll(query.requesterId(), query.status(), query.requestTypeId(), query.page());
     }
 
     @Override

@@ -7,6 +7,7 @@ import com.performily.flowboard.request.domain.model.commands.ApproveRequestComm
 import com.performily.flowboard.request.domain.model.commands.CancelRequestCommand;
 import com.performily.flowboard.request.domain.model.commands.RejectRequestCommand;
 import com.performily.flowboard.request.domain.model.commands.ReturnRequestForReviewCommand;
+import com.performily.flowboard.request.domain.model.queries.GetAllRequestsQuery;
 import com.performily.flowboard.request.domain.model.queries.GetPendingRequestsByApproverIdQuery;
 import com.performily.flowboard.request.domain.model.queries.GetPendingRequestsForHrStaffQuery;
 import com.performily.flowboard.request.domain.model.queries.GetRequestByIdQuery;
@@ -102,6 +103,37 @@ public class RequestsController {
     }
 
     /**
+     * Get the requests of every employee.
+     *
+     * @param requesterId   the optional requester filter
+     * @param status        the optional status filter
+     * @param requestTypeId the optional request type filter
+     * @param page          the page number, 0 by default
+     * @param size          the page size, 20 by default
+     * @return the HTTP response
+     */
+    @GetMapping
+    @Operation(summary = "Get all requests",
+            description = "Retrieves one page of the requests of every employee, newest first. All the filters are optional.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Requests retrieved successfully",
+                    content = @Content(schema = @Schema(implementation = PageResource.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid status, page or size")
+    })
+    public ResponseEntity<PageResource<RequestResource>> getAllRequests(
+            @RequestParam(required = false) @Parameter(description = "Requester employee id", example = "3") Long requesterId,
+            @RequestParam(required = false) @Parameter(description = "Status filter",
+                    schema = @Schema(allowableValues = {"IN_PROGRESS", "UNDER_REVIEW", "APPROVED", "REJECTED", "CANCELLED"}))
+            String status,
+            @RequestParam(required = false) @Parameter(description = "Request type filter", example = "1") Long requestTypeId,
+            @RequestParam(required = false) @Parameter(description = "Page number, starting at 0", example = "0") Integer page,
+            @RequestParam(required = false) @Parameter(description = "Page size, from 1 to 100", example = "20") Integer size) {
+        var requests = requestQueryService.handle(new GetAllRequestsQuery(
+                requesterId, toStatusFilter(status), requestTypeId, PageCriteria.of(page, size)));
+        return ResponseEntity.ok(toPageResource(requests));
+    }
+
+    /**
      * Get the requests of an employee.
      *
      * @param requesterId the requester id
@@ -125,11 +157,8 @@ public class RequestsController {
             String status,
             @RequestParam(required = false) @Parameter(description = "Page number, starting at 0", example = "0") Integer page,
             @RequestParam(required = false) @Parameter(description = "Page size, from 1 to 100", example = "20") Integer size) {
-        var statusFilter = status == null || status.isBlank()
-                ? null
-                : RequestEnumAssembler.toEnum(RequestStatus.class, status, null, "status");
         var requests = requestQueryService.handle(
-                new GetRequestsByRequesterIdQuery(requesterId, statusFilter, PageCriteria.of(page, size)));
+                new GetRequestsByRequesterIdQuery(requesterId, toStatusFilter(status), PageCriteria.of(page, size)));
         return ResponseEntity.ok(toPageResource(requests));
     }
 
@@ -329,6 +358,13 @@ public class RequestsController {
         var result = requestCommandService.handle(new CancelRequestCommand(requestId, resource.actorId()));
         return ResponseEntityAssembler.toResponseEntityFromResult(
                 result, RequestResourceFromEntityAssembler::toResourceFromEntity, HttpStatus.OK);
+    }
+
+    /** Converts the optional status parameter into a RequestStatus, or null when it is empty. */
+    private static RequestStatus toStatusFilter(String status) {
+        return status == null || status.isBlank()
+                ? null
+                : RequestEnumAssembler.toEnum(RequestStatus.class, status, null, "status");
     }
 
     /** Converts a page of requests into the page resource returned by the list endpoints. */

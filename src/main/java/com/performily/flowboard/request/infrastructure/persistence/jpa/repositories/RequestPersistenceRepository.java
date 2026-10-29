@@ -42,6 +42,34 @@ public interface RequestPersistenceRepository extends JpaRepository<RequestPersi
     Optional<RequestPersistenceEntity> findWithRequestTypeById(@Param("id") Long id);
 
     /**
+     * Finds one page of the requests that match the optional filters, newest first.
+     *
+     * @param requesterId   the requester id, or null for all
+     * @param status        the status, or null for all
+     * @param requestTypeId the request type id, or null for all
+     * @param pageable      the page to read
+     * @return the page of requests
+     */
+    @Query(value = """
+            select r from RequestPersistenceEntity r
+            join fetch r.requestType
+            where (:requesterId is null or r.requesterId = :requesterId)
+              and (:status is null or r.status = :status)
+              and (:requestTypeId is null or r.requestType.id = :requestTypeId)
+            order by r.submittedAt desc, r.id desc
+            """,
+            countQuery = """
+            select count(r) from RequestPersistenceEntity r
+            where (:requesterId is null or r.requesterId = :requesterId)
+              and (:status is null or r.status = :status)
+              and (:requestTypeId is null or r.requestType.id = :requestTypeId)
+            """)
+    Page<RequestPersistenceEntity> findPageByFilters(@Param("requesterId") Long requesterId,
+                                                     @Param("status") RequestStatus status,
+                                                     @Param("requestTypeId") Long requestTypeId,
+                                                     Pageable pageable);
+
+    /**
      * Finds one page of the requests of an employee, newest first. The status filter is optional.
      *
      * @param requesterId the requester id

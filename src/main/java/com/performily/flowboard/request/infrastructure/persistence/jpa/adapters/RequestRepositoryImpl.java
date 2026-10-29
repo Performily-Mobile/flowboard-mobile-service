@@ -77,6 +77,13 @@ public class RequestRepositoryImpl implements RequestRepository {
 
     @Override
     @Transactional(readOnly = true)
+    public PagedResult<Request> findAll(Long requesterId, RequestStatus status, Long requestTypeId, PageCriteria page) {
+        return toPagedResult(requestPersistenceRepository.findPageByFilters(
+                requesterId, status, requestTypeId, PageRequest.of(page.page(), page.size())), page);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public PagedResult<Request> findAllByRequesterId(Long requesterId, RequestStatus status, PageCriteria page) {
         return toPagedResult(requestPersistenceRepository.findPageByRequesterIdAndOptionalStatus(
                 requesterId, status, PageRequest.of(page.page(), page.size())), page);

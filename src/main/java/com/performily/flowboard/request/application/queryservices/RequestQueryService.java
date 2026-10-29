@@ -1,6 +1,7 @@
 package com.performily.flowboard.request.application.queryservices;
 
 import com.performily.flowboard.request.domain.model.aggregates.Request;
+import com.performily.flowboard.request.domain.model.queries.GetAllRequestsQuery;
 import com.performily.flowboard.request.domain.model.queries.GetPendingRequestsByApproverIdQuery;
 import com.performily.flowboard.request.domain.model.queries.GetPendingRequestsForHrStaffQuery;
 import com.performily.flowboard.request.domain.model.queries.GetRequestByIdQuery;
@@ -24,6 +25,14 @@ public interface RequestQueryService {
      * @return matching request, if found
      */
     Optional<Request> handle(GetRequestByIdQuery query);
+
+    /**
+     * Handles retrieval of the requests of every employee, with optional filters.
+     *
+     * @param query all-requests query
+     * @return one page of requests
+     */
+    PagedResult<Request> handle(GetAllRequestsQuery query);
 
     /**
      * Handles retrieval of the requests of an employee.
