@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.BatchSize;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,7 +14,9 @@ import java.util.List;
 /**
  * Request Type Persistence Entity
  * @summary
- * JPA persistence entity for request types.
+ * JPA persistence entity for request types. The fields of the form are loaded
+ * in batches of 50 types ({@link BatchSize}), so a list of requests or the
+ * catalog does not run one query per type.
  *
  * @since 1.0.0
  */
@@ -40,6 +43,7 @@ public class RequestTypePersistenceEntity extends AuditableAbstractPersistenceEn
     private boolean active;
 
     @OneToMany(mappedBy = "requestType", cascade = CascadeType.ALL, orphanRemoval = true)
+    @BatchSize(size = 50)
     @OrderBy("displayOrder ASC, id ASC")
     private List<RequestFieldPersistenceEntity> fields = new ArrayList<>();
 }

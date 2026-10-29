@@ -11,16 +11,34 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Request Persistence Repository
  * @summary
  * Spring Data repository for request persistence entities.
  *
+ * The queries that return requests bring the request type in the same query
+ * (join fetch). The collections of each request (form values, attachments and
+ * history) are loaded in batches thanks to the BatchSize of the entity.
+ *
  * @since 1.0.0
  */
 @Repository
 public interface RequestPersistenceRepository extends JpaRepository<RequestPersistenceEntity, Long> {
+    /**
+     * Finds a request by id together with its request type.
+     *
+     * @param id the request id
+     * @return the request, if found
+     */
+    @Query("""
+            select r from RequestPersistenceEntity r
+            join fetch r.requestType
+            where r.id = :id
+            """)
+    Optional<RequestPersistenceEntity> findWithRequestTypeById(@Param("id") Long id);
+
     /**
      * Finds the requests of an employee, newest first. The status filter is optional.
      *
@@ -30,6 +48,7 @@ public interface RequestPersistenceRepository extends JpaRepository<RequestPersi
      */
     @Query("""
             select r from RequestPersistenceEntity r
+            join fetch r.requestType
             where r.requesterId = :requesterId
               and (:status is null or r.status = :status)
             order by r.submittedAt desc, r.id desc
@@ -44,7 +63,14 @@ public interface RequestPersistenceRepository extends JpaRepository<RequestPersi
      * @param statuses    the statuses
      * @return the list of requests
      */
-    List<RequestPersistenceEntity> findAllByRequesterIdAndStatusIn(Long requesterId, Collection<RequestStatus> statuses);
+    @Query("""
+            select r from RequestPersistenceEntity r
+            join fetch r.requestType
+            where r.requesterId = :requesterId
+              and r.status in :statuses
+            """)
+    List<RequestPersistenceEntity> findAllByRequesterIdAndStatusIn(@Param("requesterId") Long requesterId,
+                                                                   @Param("statuses") Collection<RequestStatus> statuses);
 
     /**
      * Finds the requests with the given approver and status, oldest first.
@@ -58,6 +84,7 @@ public interface RequestPersistenceRepository extends JpaRepository<RequestPersi
      */
     @Query("""
             select r from RequestPersistenceEntity r
+            join fetch r.requestType
             where r.approverType = :approverType
               and (:approverEmployeeId is null or r.approverEmployeeId = :approverEmployeeId)
               and r.status = :status

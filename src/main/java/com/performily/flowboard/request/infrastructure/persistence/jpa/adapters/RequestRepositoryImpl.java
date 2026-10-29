@@ -21,14 +21,10 @@ import java.util.Optional;
  * @summary
  * Repository adapter that bridges the request domain repository port with Spring Data JPA.
  *
- * Also acts as the event-publishing boundary: after the {@link Request} is persisted,
- * the domain events registered by the aggregate are dispatched via Spring's
- * {@link ApplicationEventPublisher}. For a new request, a RequestSubmittedEvent is
- * added once the JPA-assigned id is available.
- *
  * Methods run inside a transaction so the lazy collections (form values,
  * attachments, history and the fields of the type) can be read while assembling
- * the domain object.
+ * the domain object. The read methods use read-only transactions, so Hibernate
+ * does not keep a copy of each loaded entity to look for changes.
  *
  * @since 1.0.0
  */
@@ -60,23 +56,27 @@ public class RequestRepositoryImpl implements RequestRepository {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Optional<Request> findById(Long id) {
-        return requestPersistenceRepository.findById(id).map(RequestPersistenceAssembler::toDomainFromPersistence);
+        return requestPersistenceRepository.findWithRequestTypeById(id).map(RequestPersistenceAssembler::toDomainFromPersistence);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Request> findAllByRequesterId(Long requesterId, RequestStatus status) {
         return requestPersistenceRepository.findAllByRequesterIdAndOptionalStatus(requesterId, status).stream()
                 .map(RequestPersistenceAssembler::toDomainFromPersistence).toList();
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Request> findAllUnresolvedByRequesterId(Long requesterId) {
         return requestPersistenceRepository.findAllByRequesterIdAndStatusIn(requesterId, UNRESOLVED_STATUSES).stream()
                 .map(RequestPersistenceAssembler::toDomainFromPersistence).toList();
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Request> findAllPendingByApproverEmployeeId(Long approverId, Long requestTypeId) {
         return requestPersistenceRepository.findAllByApprover(
                         ApproverType.DIRECT_MANAGER, approverId, RequestStatus.IN_PROGRESS, requestTypeId).stream()
@@ -84,6 +84,7 @@ public class RequestRepositoryImpl implements RequestRepository {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Request> findAllPendingForHrStaff(Long requestTypeId) {
         return requestPersistenceRepository.findAllByApprover(
                         ApproverType.HR_STAFF, null, RequestStatus.IN_PROGRESS, requestTypeId).stream()
@@ -109,11 +110,13 @@ public class RequestRepositoryImpl implements RequestRepository {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public boolean existsOverlappingRequest(Long requesterId, LocalDate startDate, LocalDate endDate) {
         return requestPersistenceRepository.countOverlapping(requesterId, OCCUPYING_STATUSES, startDate, endDate) > 0;
     }
 
     @Override
+    @Transactional(readOnly = true)
     public boolean existsByRequestTypeId(Long requestTypeId) {
         return requestPersistenceRepository.existsByRequestTypeId(requestTypeId);
     }

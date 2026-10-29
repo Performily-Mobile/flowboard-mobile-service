@@ -7,6 +7,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.BatchSize;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -25,6 +26,12 @@ import java.util.Map;
  * so they are plain columns without foreign key. The values of the dynamic form
  * are stored in request_field_values with the primary key (request_id, field_key).
  *
+ * Performance:
+ * - The request type is LAZY; the queries of the repository bring it in the same
+ *   query with join fetch.
+ * - The collections are loaded in batches of 50 requests ({@link BatchSize}), so
+ *   a list of N requests takes one query per collection instead of one per request.
+ *
  * @since 1.0.0
  */
 @Entity
@@ -36,7 +43,7 @@ public class RequestPersistenceEntity extends AuditableAbstractPersistenceEntity
     @Column(name = "requester_id", nullable = false)
     private Long requesterId;
 
-    @ManyToOne(fetch = FetchType.EAGER, optional = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "request_type_id", nullable = false)
     private RequestTypePersistenceEntity requestType;
 
@@ -67,16 +74,19 @@ public class RequestPersistenceEntity extends AuditableAbstractPersistenceEntity
     private LocalDateTime submittedAt;
 
     @ElementCollection
+    @BatchSize(size = 50)
     @CollectionTable(name = "request_field_values", joinColumns = @JoinColumn(name = "request_id"))
     @MapKeyColumn(name = "field_key", length = 50)
     @Column(name = "field_value", nullable = false, length = 500)
     private Map<String, String> fieldValues = new LinkedHashMap<>();
 
     @OneToMany(mappedBy = "request", cascade = CascadeType.ALL, orphanRemoval = true)
+    @BatchSize(size = 50)
     @OrderBy("uploadedAt ASC, id ASC")
     private List<RequestAttachmentPersistenceEntity> attachments = new ArrayList<>();
 
     @OneToMany(mappedBy = "request", cascade = CascadeType.ALL, orphanRemoval = true)
+    @BatchSize(size = 50)
     @OrderBy("occurredAt ASC, id ASC")
     private List<RequestHistoryPersistenceEntity> history = new ArrayList<>();
 }

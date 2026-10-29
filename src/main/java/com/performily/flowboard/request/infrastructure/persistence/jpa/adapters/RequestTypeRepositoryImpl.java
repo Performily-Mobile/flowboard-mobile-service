@@ -16,7 +16,7 @@ import java.util.Optional;
  * Repository adapter that bridges the request type domain repository port with Spring Data JPA.
  *
  * Methods run inside a transaction so the lazy fields of each type can be read
- * while assembling the domain object.
+ * while assembling the domain object. The read methods use read-only transactions.
  *
  * @since 1.0.0
  */
@@ -35,17 +35,20 @@ public class RequestTypeRepositoryImpl implements RequestTypeRepository {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Optional<RequestType> findById(Long id) {
         return requestTypePersistenceRepository.findById(id).map(RequestTypePersistenceAssembler::toDomainFromPersistence);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<RequestType> findAll() {
         return requestTypePersistenceRepository.findAllByOrderByNameAsc().stream()
                 .map(RequestTypePersistenceAssembler::toDomainFromPersistence).toList();
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<RequestType> findAllByActiveTrue() {
         return requestTypePersistenceRepository.findAllByActiveTrueOrderByNameAsc().stream()
                 .map(RequestTypePersistenceAssembler::toDomainFromPersistence).toList();
@@ -63,11 +66,13 @@ public class RequestTypeRepositoryImpl implements RequestTypeRepository {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public boolean existsByName(String name) {
         return requestTypePersistenceRepository.existsByName(name);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public boolean existsByNameAndIdIsNot(String name, Long id) {
         return requestTypePersistenceRepository.existsByNameAndIdIsNot(name, id);
     }
