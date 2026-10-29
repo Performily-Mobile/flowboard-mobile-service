@@ -8,7 +8,11 @@ import com.performily.flowboard.request.infrastructure.persistence.jpa.assembler
 import com.performily.flowboard.request.infrastructure.persistence.jpa.entities.RequestPersistenceEntity;
 import com.performily.flowboard.request.infrastructure.persistence.jpa.repositories.RequestPersistenceRepository;
 import com.performily.flowboard.request.infrastructure.persistence.jpa.repositories.RequestTypePersistenceRepository;
+import com.performily.flowboard.shared.domain.model.valueobjects.PageCriteria;
+import com.performily.flowboard.shared.domain.model.valueobjects.PagedResult;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -80,6 +84,13 @@ public class RequestRepositoryImpl implements RequestRepository {
 
     @Override
     @Transactional(readOnly = true)
+    public PagedResult<Request> findAllByRequesterId(Long requesterId, RequestStatus status, PageCriteria page) {
+        return toPagedResult(requestPersistenceRepository.findPageByRequesterIdAndOptionalStatus(
+                requesterId, status, PageRequest.of(page.page(), page.size())), page);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<Request> findAllUnresolvedByRequesterId(Long requesterId) {
         return requestPersistenceRepository.findAllByRequesterIdAndStatusIn(requesterId, UNRESOLVED_STATUSES).stream()
                 .map(RequestPersistenceAssembler::toDomainFromPersistence).toList();
@@ -95,10 +106,24 @@ public class RequestRepositoryImpl implements RequestRepository {
 
     @Override
     @Transactional(readOnly = true)
+    public PagedResult<Request> findAllPendingByApproverEmployeeId(Long approverId, Long requestTypeId, PageCriteria page) {
+        return toPagedResult(requestPersistenceRepository.findPageByApprover(ApproverType.DIRECT_MANAGER, approverId,
+                RequestStatus.IN_PROGRESS, requestTypeId, PageRequest.of(page.page(), page.size())), page);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<Request> findAllPendingForHrStaff(Long requestTypeId) {
         return requestPersistenceRepository.findAllByApprover(
                         ApproverType.HR_STAFF, null, RequestStatus.IN_PROGRESS, requestTypeId).stream()
                 .map(RequestPersistenceAssembler::toDomainFromPersistence).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PagedResult<Request> findAllPendingForHrStaff(Long requestTypeId, PageCriteria page) {
+        return toPagedResult(requestPersistenceRepository.findPageByApprover(ApproverType.HR_STAFF, null,
+                RequestStatus.IN_PROGRESS, requestTypeId, PageRequest.of(page.page(), page.size())), page);
     }
 
     @Override
@@ -140,6 +165,12 @@ public class RequestRepositoryImpl implements RequestRepository {
      * @return the stored entity, already updated
      * @throws IllegalArgumentException if the request does not exist
      */
+    /** Converts a page of entities into a page of domain requests. */
+    private static PagedResult<Request> toPagedResult(Page<RequestPersistenceEntity> page, PageCriteria criteria) {
+        var items = page.getContent().stream().map(RequestPersistenceAssembler::toDomainFromPersistence).toList();
+        return PagedResult.of(items, criteria, page.getTotalElements());
+    }
+
     private RequestPersistenceEntity updateStoredEntity(Request request) {
         var entity = requestPersistenceRepository.findWithRequestTypeById(request.getId())
                 .orElseThrow(() -> new IllegalArgumentException("Request %d not found".formatted(request.getId())));

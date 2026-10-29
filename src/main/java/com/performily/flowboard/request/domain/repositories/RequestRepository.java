@@ -2,6 +2,8 @@ package com.performily.flowboard.request.domain.repositories;
 
 import com.performily.flowboard.request.domain.model.aggregates.Request;
 import com.performily.flowboard.request.domain.model.valueobjects.RequestStatus;
+import com.performily.flowboard.shared.domain.model.valueobjects.PageCriteria;
+import com.performily.flowboard.shared.domain.model.valueobjects.PagedResult;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -33,6 +35,16 @@ public interface RequestRepository {
     List<Request> findAllByRequesterId(Long requesterId, RequestStatus status);
 
     /**
+     * Finds one page of the requests of an employee, newest first.
+     *
+     * @param requesterId the requester id
+     * @param status      the status filter, or null for all
+     * @param page        the page to read
+     * @return the page of requests
+     */
+    PagedResult<Request> findAllByRequesterId(Long requesterId, RequestStatus status, PageCriteria page);
+
+    /**
      * Finds the requests of an employee that are not resolved yet
      * (IN_PROGRESS or UNDER_REVIEW).
      *
@@ -51,12 +63,31 @@ public interface RequestRepository {
     List<Request> findAllPendingByApproverEmployeeId(Long approverId, Long requestTypeId);
 
     /**
+     * Finds one page of the IN_PROGRESS requests assigned to a direct manager, oldest first.
+     *
+     * @param approverId    the approver id
+     * @param requestTypeId the request type filter, or null for all
+     * @param page          the page to read
+     * @return the page of requests
+     */
+    PagedResult<Request> findAllPendingByApproverEmployeeId(Long approverId, Long requestTypeId, PageCriteria page);
+
+    /**
      * Finds the IN_PROGRESS requests routed to the HR staff, oldest first.
      *
      * @param requestTypeId the request type filter, or null for all
      * @return the list of requests
      */
     List<Request> findAllPendingForHrStaff(Long requestTypeId);
+
+    /**
+     * Finds one page of the IN_PROGRESS requests routed to the HR staff, oldest first.
+     *
+     * @param requestTypeId the request type filter, or null for all
+     * @param page          the page to read
+     * @return the page of requests
+     */
+    PagedResult<Request> findAllPendingForHrStaff(Long requestTypeId, PageCriteria page);
 
     /**
      * Saves the request and publishes its domain events.
