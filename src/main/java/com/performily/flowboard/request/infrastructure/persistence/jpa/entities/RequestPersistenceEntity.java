@@ -27,6 +27,10 @@ import java.util.Map;
  * are stored in request_field_values with the primary key (request_id, field_key).
  *
  * Performance:
+ * - idx_request_requester_status_date covers the requests of an employee (with or
+ *   without status) and the overlap check; idx_request_approver_status_date covers
+ *   the pending requests of a direct manager and of the HR staff. Production uses
+ *   ddl-auto=validate, so these indexes are created by hand in the database.
  * - The request type is LAZY; the queries of the repository bring it in the same
  *   query with join fetch.
  * - The collections are loaded in batches of 50 requests ({@link BatchSize}), so
@@ -35,7 +39,11 @@ import java.util.Map;
  * @since 1.0.0
  */
 @Entity
-@Table(name = "requests")
+@Table(name = "requests", indexes = {
+        @Index(name = "idx_request_requester_status_date", columnList = "requester_id, status, submitted_at"),
+        @Index(name = "idx_request_approver_status_date",
+                columnList = "approver_type, status, approver_employee_id, submitted_at")
+})
 @Getter
 @Setter
 @NoArgsConstructor
