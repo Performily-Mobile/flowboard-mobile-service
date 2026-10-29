@@ -77,13 +77,6 @@ public class RequestRepositoryImpl implements RequestRepository {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Request> findAllByRequesterId(Long requesterId, RequestStatus status) {
-        return requestPersistenceRepository.findAllByRequesterIdAndOptionalStatus(requesterId, status).stream()
-                .map(RequestPersistenceAssembler::toDomainFromPersistence).toList();
-    }
-
-    @Override
-    @Transactional(readOnly = true)
     public PagedResult<Request> findAllByRequesterId(Long requesterId, RequestStatus status, PageCriteria page) {
         return toPagedResult(requestPersistenceRepository.findPageByRequesterIdAndOptionalStatus(
                 requesterId, status, PageRequest.of(page.page(), page.size())), page);
@@ -98,25 +91,9 @@ public class RequestRepositoryImpl implements RequestRepository {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Request> findAllPendingByApproverEmployeeId(Long approverId, Long requestTypeId) {
-        return requestPersistenceRepository.findAllByApprover(
-                        ApproverType.DIRECT_MANAGER, approverId, RequestStatus.IN_PROGRESS, requestTypeId).stream()
-                .map(RequestPersistenceAssembler::toDomainFromPersistence).toList();
-    }
-
-    @Override
-    @Transactional(readOnly = true)
     public PagedResult<Request> findAllPendingByApproverEmployeeId(Long approverId, Long requestTypeId, PageCriteria page) {
         return toPagedResult(requestPersistenceRepository.findPageByApprover(ApproverType.DIRECT_MANAGER, approverId,
                 RequestStatus.IN_PROGRESS, requestTypeId, PageRequest.of(page.page(), page.size())), page);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<Request> findAllPendingForHrStaff(Long requestTypeId) {
-        return requestPersistenceRepository.findAllByApprover(
-                        ApproverType.HR_STAFF, null, RequestStatus.IN_PROGRESS, requestTypeId).stream()
-                .map(RequestPersistenceAssembler::toDomainFromPersistence).toList();
     }
 
     @Override

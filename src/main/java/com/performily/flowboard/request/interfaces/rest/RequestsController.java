@@ -22,7 +22,11 @@ import com.performily.flowboard.request.interfaces.rest.transform.ResubmitReques
 import com.performily.flowboard.request.interfaces.rest.transform.SubmitRequestCommandFromResourceAssembler;
 import com.performily.flowboard.shared.application.result.ApplicationError;
 import com.performily.flowboard.shared.application.result.Result;
+import com.performily.flowboard.shared.domain.model.valueobjects.PageCriteria;
+import com.performily.flowboard.shared.domain.model.valueobjects.PagedResult;
+import com.performily.flowboard.shared.interfaces.rest.resources.PageResource;
 import com.performily.flowboard.shared.interfaces.rest.transform.ErrorResponseAssembler;
+import com.performily.flowboard.shared.interfaces.rest.transform.PageResourceFromPagedResultAssembler;
 import com.performily.flowboard.shared.interfaces.rest.transform.ResponseEntityAssembler;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -35,8 +39,6 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
@@ -104,26 +106,31 @@ public class RequestsController {
      *
      * @param requesterId the requester id
      * @param status the optional status filter
+     * @param page the page number, 0 by default
+     * @param size the page size, 20 by default
      * @return the HTTP response
      */
     @GetMapping("/me")
     @Operation(summary = "Get my requests",
-            description = "Retrieves the requests of an employee, newest first. The status filter is optional.")
+            description = "Retrieves one page of the requests of an employee, newest first. The status filter is optional.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Requests retrieved successfully",
-                    content = @Content(schema = @Schema(implementation = RequestResource.class))),
-            @ApiResponse(responseCode = "400", description = "Invalid status")
+                    content = @Content(schema = @Schema(implementation = PageResource.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid status, page or size")
     })
-    public ResponseEntity<List<RequestResource>> getMyRequests(
+    public ResponseEntity<PageResource<RequestResource>> getMyRequests(
             @RequestParam @Parameter(description = "Requester employee id", example = "3", required = true) Long requesterId,
             @RequestParam(required = false) @Parameter(description = "Status filter",
                     schema = @Schema(allowableValues = {"IN_PROGRESS", "UNDER_REVIEW", "APPROVED", "REJECTED", "CANCELLED"}))
-            String status) {
+            String status,
+            @RequestParam(required = false) @Parameter(description = "Page number, starting at 0", example = "0") Integer page,
+            @RequestParam(required = false) @Parameter(description = "Page size, from 1 to 100", example = "20") Integer size) {
         var statusFilter = status == null || status.isBlank()
                 ? null
                 : RequestEnumAssembler.toEnum(RequestStatus.class, status, null, "status");
-        var requests = requestQueryService.handle(new GetRequestsByRequesterIdQuery(requesterId, statusFilter));
-        return ResponseEntity.ok(toResources(requests));
+        var requests = requestQueryService.handle(
+                new GetRequestsByRequesterIdQuery(requesterId, statusFilter, PageCriteria.of(page, size)));
+        return ResponseEntity.ok(toPageResource(requests));
     }
 
     /**
@@ -131,39 +138,51 @@ public class RequestsController {
      *
      * @param approverId the approver id
      * @param requestTypeId the optional request type filter
+     * @param page the page number, 0 by default
+     * @param size the page size, 20 by default
      * @return the HTTP response
      */
     @GetMapping("/pending-approval")
     @Operation(summary = "Get pending requests of an approver",
-            description = "Retrieves the IN_PROGRESS requests assigned to a direct manager, oldest first. The request type filter is optional.")
+            description = "Retrieves one page of the IN_PROGRESS requests assigned to a direct manager, oldest first. The request type filter is optional.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Requests retrieved successfully",
-                    content = @Content(schema = @Schema(implementation = RequestResource.class)))
+                    content = @Content(schema = @Schema(implementation = PageResource.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid page or size")
     })
-    public ResponseEntity<List<RequestResource>> getPendingApproval(
+    public ResponseEntity<PageResource<RequestResource>> getPendingApproval(
             @RequestParam @Parameter(description = "Approver employee id", example = "2", required = true) Long approverId,
-            @RequestParam(required = false) @Parameter(description = "Request type filter", example = "1") Long requestTypeId) {
-        var requests = requestQueryService.handle(new GetPendingRequestsByApproverIdQuery(approverId, requestTypeId));
-        return ResponseEntity.ok(toResources(requests));
+            @RequestParam(required = false) @Parameter(description = "Request type filter", example = "1") Long requestTypeId,
+            @RequestParam(required = false) @Parameter(description = "Page number, starting at 0", example = "0") Integer page,
+            @RequestParam(required = false) @Parameter(description = "Page size, from 1 to 100", example = "20") Integer size) {
+        var requests = requestQueryService.handle(
+                new GetPendingRequestsByApproverIdQuery(approverId, requestTypeId, PageCriteria.of(page, size)));
+        return ResponseEntity.ok(toPageResource(requests));
     }
 
     /**
      * Get the pending requests routed to the HR staff.
      *
      * @param requestTypeId the optional request type filter
+     * @param page the page number, 0 by default
+     * @param size the page size, 20 by default
      * @return the HTTP response
      */
     @GetMapping("/pending-approval/hr-staff")
     @Operation(summary = "Get pending requests of the HR staff",
-            description = "Retrieves the IN_PROGRESS requests of employees without direct manager, oldest first.")
+            description = "Retrieves one page of the IN_PROGRESS requests of employees without direct manager, oldest first.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Requests retrieved successfully",
-                    content = @Content(schema = @Schema(implementation = RequestResource.class)))
+                    content = @Content(schema = @Schema(implementation = PageResource.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid page or size")
     })
-    public ResponseEntity<List<RequestResource>> getPendingApprovalForHrStaff(
-            @RequestParam(required = false) @Parameter(description = "Request type filter", example = "1") Long requestTypeId) {
-        var requests = requestQueryService.handle(new GetPendingRequestsForHrStaffQuery(requestTypeId));
-        return ResponseEntity.ok(toResources(requests));
+    public ResponseEntity<PageResource<RequestResource>> getPendingApprovalForHrStaff(
+            @RequestParam(required = false) @Parameter(description = "Request type filter", example = "1") Long requestTypeId,
+            @RequestParam(required = false) @Parameter(description = "Page number, starting at 0", example = "0") Integer page,
+            @RequestParam(required = false) @Parameter(description = "Page size, from 1 to 100", example = "20") Integer size) {
+        var requests = requestQueryService.handle(
+                new GetPendingRequestsForHrStaffQuery(requestTypeId, PageCriteria.of(page, size)));
+        return ResponseEntity.ok(toPageResource(requests));
     }
 
     /**
@@ -312,7 +331,9 @@ public class RequestsController {
                 result, RequestResourceFromEntityAssembler::toResourceFromEntity, HttpStatus.OK);
     }
 
-    private List<RequestResource> toResources(List<Request> requests) {
-        return requests.stream().map(RequestResourceFromEntityAssembler::toResourceFromEntity).toList();
+    /** Converts a page of requests into the page resource returned by the list endpoints. */
+    private PageResource<RequestResource> toPageResource(PagedResult<Request> requests) {
+        return PageResourceFromPagedResultAssembler.toResourceFromPagedResult(
+                requests, RequestResourceFromEntityAssembler::toResourceFromEntity);
     }
 }

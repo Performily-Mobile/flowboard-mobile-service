@@ -42,23 +42,6 @@ public interface RequestPersistenceRepository extends JpaRepository<RequestPersi
     Optional<RequestPersistenceEntity> findWithRequestTypeById(@Param("id") Long id);
 
     /**
-     * Finds the requests of an employee, newest first. The status filter is optional.
-     *
-     * @param requesterId the requester id
-     * @param status      the status, or null for all
-     * @return the list of requests
-     */
-    @Query("""
-            select r from RequestPersistenceEntity r
-            join fetch r.requestType
-            where r.requesterId = :requesterId
-              and (:status is null or r.status = :status)
-            order by r.submittedAt desc, r.id desc
-            """)
-    List<RequestPersistenceEntity> findAllByRequesterIdAndOptionalStatus(@Param("requesterId") Long requesterId,
-                                                                         @Param("status") RequestStatus status);
-
-    /**
      * Finds one page of the requests of an employee, newest first. The status filter is optional.
      *
      * @param requesterId the requester id
@@ -97,30 +80,6 @@ public interface RequestPersistenceRepository extends JpaRepository<RequestPersi
             """)
     List<RequestPersistenceEntity> findAllByRequesterIdAndStatusIn(@Param("requesterId") Long requesterId,
                                                                    @Param("statuses") Collection<RequestStatus> statuses);
-
-    /**
-     * Finds the requests with the given approver and status, oldest first.
-     * The approver employee id and the request type are optional filters.
-     *
-     * @param approverType       the approver type
-     * @param approverEmployeeId the approver employee id, or null
-     * @param status             the status
-     * @param requestTypeId      the request type id, or null
-     * @return the list of requests
-     */
-    @Query("""
-            select r from RequestPersistenceEntity r
-            join fetch r.requestType
-            where r.approverType = :approverType
-              and (:approverEmployeeId is null or r.approverEmployeeId = :approverEmployeeId)
-              and r.status = :status
-              and (:requestTypeId is null or r.requestType.id = :requestTypeId)
-            order by r.submittedAt asc, r.id asc
-            """)
-    List<RequestPersistenceEntity> findAllByApprover(@Param("approverType") ApproverType approverType,
-                                                     @Param("approverEmployeeId") Long approverEmployeeId,
-                                                     @Param("status") RequestStatus status,
-                                                     @Param("requestTypeId") Long requestTypeId);
 
     /**
      * Finds one page of the requests with the given approver and status, oldest first.

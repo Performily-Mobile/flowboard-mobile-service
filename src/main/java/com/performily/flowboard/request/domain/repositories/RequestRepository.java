@@ -26,15 +26,6 @@ public interface RequestRepository {
     Optional<Request> findById(Long id);
 
     /**
-     * Finds the requests of an employee, newest first.
-     *
-     * @param requesterId the requester id
-     * @param status      the status filter, or null for all
-     * @return the list of requests
-     */
-    List<Request> findAllByRequesterId(Long requesterId, RequestStatus status);
-
-    /**
      * Finds one page of the requests of an employee, newest first.
      *
      * @param requesterId the requester id
@@ -54,15 +45,6 @@ public interface RequestRepository {
     List<Request> findAllUnresolvedByRequesterId(Long requesterId);
 
     /**
-     * Finds the IN_PROGRESS requests assigned to a direct manager, oldest first.
-     *
-     * @param approverId    the approver id
-     * @param requestTypeId the request type filter, or null for all
-     * @return the list of requests
-     */
-    List<Request> findAllPendingByApproverEmployeeId(Long approverId, Long requestTypeId);
-
-    /**
      * Finds one page of the IN_PROGRESS requests assigned to a direct manager, oldest first.
      *
      * @param approverId    the approver id
@@ -71,14 +53,6 @@ public interface RequestRepository {
      * @return the page of requests
      */
     PagedResult<Request> findAllPendingByApproverEmployeeId(Long approverId, Long requestTypeId, PageCriteria page);
-
-    /**
-     * Finds the IN_PROGRESS requests routed to the HR staff, oldest first.
-     *
-     * @param requestTypeId the request type filter, or null for all
-     * @return the list of requests
-     */
-    List<Request> findAllPendingForHrStaff(Long requestTypeId);
 
     /**
      * Finds one page of the IN_PROGRESS requests routed to the HR staff, oldest first.

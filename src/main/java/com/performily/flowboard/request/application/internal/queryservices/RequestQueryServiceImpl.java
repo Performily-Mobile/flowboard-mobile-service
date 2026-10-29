@@ -7,9 +7,9 @@ import com.performily.flowboard.request.domain.model.queries.GetPendingRequestsF
 import com.performily.flowboard.request.domain.model.queries.GetRequestByIdQuery;
 import com.performily.flowboard.request.domain.model.queries.GetRequestsByRequesterIdQuery;
 import com.performily.flowboard.request.domain.repositories.RequestRepository;
+import com.performily.flowboard.shared.domain.model.valueobjects.PagedResult;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.Optional;
 
 /**
@@ -38,17 +38,17 @@ public class RequestQueryServiceImpl implements RequestQueryService {
     }
 
     @Override
-    public List<Request> handle(GetRequestsByRequesterIdQuery query) {
-        return requestRepository.findAllByRequesterId(query.requesterId(), query.status());
+    public PagedResult<Request> handle(GetRequestsByRequesterIdQuery query) {
+        return requestRepository.findAllByRequesterId(query.requesterId(), query.status(), query.page());
     }
 
     @Override
-    public List<Request> handle(GetPendingRequestsByApproverIdQuery query) {
-        return requestRepository.findAllPendingByApproverEmployeeId(query.approverId(), query.requestTypeId());
+    public PagedResult<Request> handle(GetPendingRequestsByApproverIdQuery query) {
+        return requestRepository.findAllPendingByApproverEmployeeId(query.approverId(), query.requestTypeId(), query.page());
     }
 
     @Override
-    public List<Request> handle(GetPendingRequestsForHrStaffQuery query) {
-        return requestRepository.findAllPendingForHrStaff(query.requestTypeId());
+    public PagedResult<Request> handle(GetPendingRequestsForHrStaffQuery query) {
+        return requestRepository.findAllPendingForHrStaff(query.requestTypeId(), query.page());
     }
 }
