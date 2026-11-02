@@ -22,6 +22,10 @@ public class ResubmitRequestCommandFromResourceAssembler {
         return new ResubmitRequestCommand(
                 requestId,
                 resource.actorId(),
+                resource.startDate(),
+                resource.endDate(),
+                resource.startTime(),
+                resource.endTime(),
                 FieldValueAndAttachmentAssembler.toFieldValues(resource.fieldValues()),
                 FieldValueAndAttachmentAssembler.toFileReferences(resource.attachments()),
                 resource.comment());

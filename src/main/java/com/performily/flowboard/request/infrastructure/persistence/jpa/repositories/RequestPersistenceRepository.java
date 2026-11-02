@@ -169,6 +169,7 @@ public interface RequestPersistenceRepository extends JpaRepository<RequestPersi
      * @param statuses    the statuses to consider
      * @param startDate   the start date
      * @param endDate     the end date
+     * @param excludedRequestId the request to leave out, or null
      * @return the number of overlapping requests
      */
     @Query("""
@@ -178,11 +179,13 @@ public interface RequestPersistenceRepository extends JpaRepository<RequestPersi
               and r.startDate is not null
               and r.startDate <= :endDate
               and r.endDate >= :startDate
+              and (:excludedRequestId is null or r.id <> :excludedRequestId)
             """)
     long countOverlapping(@Param("requesterId") Long requesterId,
                           @Param("statuses") Collection<RequestStatus> statuses,
                           @Param("startDate") LocalDate startDate,
-                          @Param("endDate") LocalDate endDate);
+                          @Param("endDate") LocalDate endDate,
+                          @Param("excludedRequestId") Long excludedRequestId);
 
     /**
      * Checks whether a request type already has requests.

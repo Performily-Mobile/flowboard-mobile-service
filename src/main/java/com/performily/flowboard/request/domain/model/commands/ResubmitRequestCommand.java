@@ -3,16 +3,21 @@ package com.performily.flowboard.request.domain.model.commands;
 import com.performily.flowboard.request.domain.model.valueobjects.FieldValue;
 import com.performily.flowboard.shared.domain.model.valueobjects.FileReference;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 /**
  * Resubmit Request Command
  * @summary
- * Command to send again a request that was returned for review.
+ * Command to send again a request that was returned for review. The period is optional:
+ * when startDate, endDate, startTime and endTime are null the current period is kept.
  *
  * @since 1.0.0
  */
-public record ResubmitRequestCommand(Long requestId, Long actorId, List<FieldValue> fieldValues, List<FileReference> attachments, String comment) {
+public record ResubmitRequestCommand(Long requestId, Long actorId, LocalDate startDate, LocalDate endDate,
+                                     LocalTime startTime, LocalTime endTime, List<FieldValue> fieldValues,
+                                     List<FileReference> attachments, String comment) {
     /**
      * Compact constructor for ResubmitRequestCommand.
      *

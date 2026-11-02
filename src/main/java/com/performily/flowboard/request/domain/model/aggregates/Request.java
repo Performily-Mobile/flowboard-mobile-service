@@ -148,14 +148,20 @@ public class Request extends AbstractDomainAggregateRoot<Request> {
      * replace the previous ones and are validated again against the type.
      *
      * @param actorId     the requester
+     * @param period      the corrected period, or null to keep the current one
      * @param fieldValues the new values of the form
      * @param attachments the new attachments
      * @param comment     an optional comment for the approver
      */
-    public void resubmit(EmployeeId actorId, List<FieldValue> fieldValues, List<FileReference> attachments, String comment) {
+    public void resubmit(EmployeeId actorId, RequestPeriod period, List<FieldValue> fieldValues,
+                         List<FileReference> attachments, String comment) {
         requireStatus(RequestStatus.UNDER_REVIEW, "resubmitted");
         requireRequester(actorId);
         requestType.validate(fieldValues, attachments);
+        if (period != null) {
+            validatePeriod(requestType, period);
+            this.period = period;
+        }
         this.fieldValues = copy(fieldValues);
         this.attachments = copy(attachments);
         changeStatus(RequestStatus.IN_PROGRESS, actorId, comment);

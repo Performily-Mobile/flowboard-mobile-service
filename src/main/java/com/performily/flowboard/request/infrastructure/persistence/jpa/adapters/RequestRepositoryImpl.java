@@ -140,8 +140,9 @@ public class RequestRepositoryImpl implements RequestRepository {
 
     @Override
     @Transactional(readOnly = true)
-    public boolean existsOverlappingRequest(Long requesterId, LocalDate startDate, LocalDate endDate) {
-        return requestPersistenceRepository.countOverlapping(requesterId, OCCUPYING_STATUSES, startDate, endDate) > 0;
+    public boolean existsOverlappingRequest(Long requesterId, LocalDate startDate, LocalDate endDate, Long excludedRequestId) {
+        return requestPersistenceRepository.countOverlapping(
+                requesterId, OCCUPYING_STATUSES, startDate, endDate, excludedRequestId) > 0;
     }
 
     @Override

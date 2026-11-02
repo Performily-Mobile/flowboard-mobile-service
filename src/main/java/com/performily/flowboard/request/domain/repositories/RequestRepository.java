@@ -93,14 +93,15 @@ public interface RequestRepository {
 
     /**
      * Checks whether the employee already has a request IN_PROGRESS, UNDER_REVIEW or
-     * APPROVED whose period overlaps the given dates.
+     * APPROVED whose period overlaps the given dates. One request can be left out.
      *
-     * @param requesterId the requester id
-     * @param startDate   the start date
-     * @param endDate     the end date
+     * @param requesterId       the requester id
+     * @param startDate         the start date
+     * @param endDate           the end date
+     * @param excludedRequestId the request to leave out, or null
      * @return true if there is an overlapping request
      */
-    boolean existsOverlappingRequest(Long requesterId, LocalDate startDate, LocalDate endDate);
+    boolean existsOverlappingRequest(Long requesterId, LocalDate startDate, LocalDate endDate, Long excludedRequestId);
 
     /**
      * Checks whether a request type already has requests.
