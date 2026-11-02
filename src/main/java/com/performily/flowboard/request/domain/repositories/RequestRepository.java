@@ -56,6 +56,15 @@ public interface RequestRepository {
     List<Request> findAllUnresolvedByRequesterId(Long requesterId);
 
     /**
+     * Finds the requests assigned to a direct manager that are not resolved yet
+     * (IN_PROGRESS or UNDER_REVIEW).
+     *
+     * @param approverId the approver id
+     * @return the list of requests
+     */
+    List<Request> findAllUnresolvedByApproverEmployeeId(Long approverId);
+
+    /**
      * Finds one page of the IN_PROGRESS requests assigned to a direct manager, oldest first.
      *
      * @param approverId    the approver id

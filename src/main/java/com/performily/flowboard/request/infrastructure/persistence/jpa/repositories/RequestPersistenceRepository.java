@@ -110,6 +110,25 @@ public interface RequestPersistenceRepository extends JpaRepository<RequestPersi
                                                                    @Param("statuses") Collection<RequestStatus> statuses);
 
     /**
+     * Finds the requests of an approver with one of the given statuses.
+     *
+     * @param approverType       the approver type
+     * @param approverEmployeeId the approver employee id
+     * @param statuses           the statuses
+     * @return the list of requests
+     */
+    @Query("""
+            select r from RequestPersistenceEntity r
+            join fetch r.requestType
+            where r.approverType = :approverType
+              and r.approverEmployeeId = :approverEmployeeId
+              and r.status in :statuses
+            """)
+    List<RequestPersistenceEntity> findAllByApproverAndStatusIn(@Param("approverType") ApproverType approverType,
+                                                                @Param("approverEmployeeId") Long approverEmployeeId,
+                                                                @Param("statuses") Collection<RequestStatus> statuses);
+
+    /**
      * Finds one page of the requests with the given approver and status, oldest first.
      * The approver employee id and the request type are optional filters.
      *

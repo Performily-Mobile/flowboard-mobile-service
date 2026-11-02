@@ -98,6 +98,14 @@ public class RequestRepositoryImpl implements RequestRepository {
 
     @Override
     @Transactional(readOnly = true)
+    public List<Request> findAllUnresolvedByApproverEmployeeId(Long approverId) {
+        return requestPersistenceRepository.findAllByApproverAndStatusIn(
+                        ApproverType.DIRECT_MANAGER, approverId, UNRESOLVED_STATUSES).stream()
+                .map(RequestPersistenceAssembler::toDomainFromPersistence).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public PagedResult<Request> findAllPendingByApproverEmployeeId(Long approverId, Long requestTypeId, PageCriteria page) {
         return toPagedResult(requestPersistenceRepository.findPageByApprover(ApproverType.DIRECT_MANAGER, approverId,
                 RequestStatus.IN_PROGRESS, requestTypeId, PageRequest.of(page.page(), page.size())), page);
