@@ -251,7 +251,7 @@ public class RequestsController {
             @ApiResponse(responseCode = "200", description = "Request approved successfully",
                     content = @Content(schema = @Schema(implementation = RequestResource.class))),
             @ApiResponse(responseCode = "404", description = "Request not found"),
-            @ApiResponse(responseCode = "422", description = "Request is not IN_PROGRESS or the actor is not the assigned approver")
+            @ApiResponse(responseCode = "422", description = "Request is not IN_PROGRESS, the actor is not the assigned approver or the actor is the requester")
     })
     public ResponseEntity<?> approveRequest(
             @PathVariable @Parameter(description = "Request unique identifier", example = "1", required = true) Long requestId,
@@ -275,7 +275,7 @@ public class RequestsController {
                     content = @Content(schema = @Schema(implementation = RequestResource.class))),
             @ApiResponse(responseCode = "400", description = "Rejection reason is missing"),
             @ApiResponse(responseCode = "404", description = "Request not found"),
-            @ApiResponse(responseCode = "422", description = "Request is not IN_PROGRESS or the actor is not the assigned approver")
+            @ApiResponse(responseCode = "422", description = "Request is not IN_PROGRESS, the actor is not the assigned approver or the actor is the requester")
     })
     public ResponseEntity<?> rejectRequest(
             @PathVariable @Parameter(description = "Request unique identifier", example = "1", required = true) Long requestId,
@@ -300,7 +300,7 @@ public class RequestsController {
                     content = @Content(schema = @Schema(implementation = RequestResource.class))),
             @ApiResponse(responseCode = "400", description = "Review comment is missing"),
             @ApiResponse(responseCode = "404", description = "Request not found"),
-            @ApiResponse(responseCode = "422", description = "Request is not IN_PROGRESS or the actor is not the assigned approver")
+            @ApiResponse(responseCode = "422", description = "Request is not IN_PROGRESS, the actor is not the assigned approver or the actor is the requester")
     })
     public ResponseEntity<?> returnRequestForReview(
             @PathVariable @Parameter(description = "Request unique identifier", example = "1", required = true) Long requestId,

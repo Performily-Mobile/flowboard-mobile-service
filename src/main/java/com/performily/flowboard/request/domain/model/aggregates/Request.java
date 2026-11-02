@@ -263,6 +263,9 @@ public class Request extends AbstractDomainAggregateRoot<Request> {
     }
 
     private void requireApprover(EmployeeId actorId) {
+        if (requesterId.equals(actorId)) {
+            throw new IllegalStateException("An employee cannot resolve their own request");
+        }
         if (actorId == null || !approver.isAssignedTo(actorId)) {
             throw new IllegalStateException("Only the assigned approver can resolve this request");
         }
