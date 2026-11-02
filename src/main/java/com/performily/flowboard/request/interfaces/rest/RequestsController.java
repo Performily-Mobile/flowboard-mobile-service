@@ -12,6 +12,7 @@ import com.performily.flowboard.request.domain.model.queries.GetPendingRequestsB
 import com.performily.flowboard.request.domain.model.queries.GetPendingRequestsForHrStaffQuery;
 import com.performily.flowboard.request.domain.model.queries.GetRequestByIdQuery;
 import com.performily.flowboard.request.domain.model.queries.GetRequestsByRequesterIdQuery;
+import com.performily.flowboard.request.domain.model.valueobjects.RequestSortOrder;
 import com.performily.flowboard.request.domain.model.valueobjects.RequestStatus;
 import com.performily.flowboard.request.interfaces.rest.resources.RequestResource;
 import com.performily.flowboard.request.interfaces.rest.resources.ResolveRequestResource;
@@ -40,6 +41,9 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Objects;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
@@ -106,15 +110,17 @@ public class RequestsController {
      * Get the requests of every employee.
      *
      * @param requesterId   the optional requester filter
-     * @param status        the optional status filter
+     * @param status        the optional status filter; it can be repeated to include several statuses
      * @param requestTypeId the optional request type filter
+     * @param approverId    the optional direct manager filter
      * @param page          the page number, 0 by default
      * @param size          the page size, 20 by default
      * @return the HTTP response
      */
     @GetMapping
     @Operation(summary = "Get all requests",
-            description = "Retrieves one page of the requests of every employee, newest first. All the filters are optional.")
+            description = "Retrieves one page of the requests of every employee, newest first. All the filters are optional; "
+                    + "status can be repeated, for example status=APPROVED&status=REJECTED.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Requests retrieved successfully",
                     content = @Content(schema = @Schema(implementation = PageResource.class))),
@@ -122,14 +128,17 @@ public class RequestsController {
     })
     public ResponseEntity<PageResource<RequestResource>> getAllRequests(
             @RequestParam(required = false) @Parameter(description = "Requester employee id", example = "3") Long requesterId,
-            @RequestParam(required = false) @Parameter(description = "Status filter",
-                    schema = @Schema(allowableValues = {"IN_PROGRESS", "UNDER_REVIEW", "APPROVED", "REJECTED", "CANCELLED"}))
-            String status,
+            @RequestParam(required = false) @Parameter(description = "Status filter, can be repeated")
+            List<String> status,
             @RequestParam(required = false) @Parameter(description = "Request type filter", example = "1") Long requestTypeId,
+            @RequestParam(required = false) @Parameter(description = "Direct manager that has to approve the requests", example = "6")
+            Long approverId,
             @RequestParam(required = false) @Parameter(description = "Page number, starting at 0", example = "0") Integer page,
             @RequestParam(required = false) @Parameter(description = "Page size, from 1 to 100", example = "20") Integer size) {
+        var statuses = status == null ? List.<RequestStatus>of() : status.stream().map(RequestsController::toStatusFilter)
+                .filter(Objects::nonNull).toList();
         var requests = requestQueryService.handle(new GetAllRequestsQuery(
-                requesterId, toStatusFilter(status), requestTypeId, PageCriteria.of(page, size)));
+                requesterId, statuses, requestTypeId, approverId, PageCriteria.of(page, size)));
         return ResponseEntity.ok(toPageResource(requests));
     }
 
@@ -167,25 +176,29 @@ public class RequestsController {
      *
      * @param approverId the approver id
      * @param requestTypeId the optional request type filter
+     * @param sort the order by submission date, OLDEST_FIRST by default
      * @param page the page number, 0 by default
      * @param size the page size, 20 by default
      * @return the HTTP response
      */
     @GetMapping("/pending-approval")
     @Operation(summary = "Get pending requests of an approver",
-            description = "Retrieves one page of the IN_PROGRESS requests assigned to a direct manager, oldest first. The request type filter is optional.")
+            description = "Retrieves one page of the IN_PROGRESS requests assigned to a direct manager, oldest first by default. The request type filter is optional.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Requests retrieved successfully",
                     content = @Content(schema = @Schema(implementation = PageResource.class))),
-            @ApiResponse(responseCode = "400", description = "Invalid page or size")
+            @ApiResponse(responseCode = "400", description = "Invalid sort, page or size")
     })
     public ResponseEntity<PageResource<RequestResource>> getPendingApproval(
             @RequestParam @Parameter(description = "Approver employee id", example = "2", required = true) Long approverId,
             @RequestParam(required = false) @Parameter(description = "Request type filter", example = "1") Long requestTypeId,
+            @RequestParam(required = false) @Parameter(description = "Order by submission date",
+                    schema = @Schema(allowableValues = {"OLDEST_FIRST", "NEWEST_FIRST"}, defaultValue = "OLDEST_FIRST"))
+            String sort,
             @RequestParam(required = false) @Parameter(description = "Page number, starting at 0", example = "0") Integer page,
             @RequestParam(required = false) @Parameter(description = "Page size, from 1 to 100", example = "20") Integer size) {
         var requests = requestQueryService.handle(
-                new GetPendingRequestsByApproverIdQuery(approverId, requestTypeId, PageCriteria.of(page, size)));
+                new GetPendingRequestsByApproverIdQuery(approverId, requestTypeId, toSortOrder(sort), PageCriteria.of(page, size)));
         return ResponseEntity.ok(toPageResource(requests));
     }
 
@@ -193,24 +206,28 @@ public class RequestsController {
      * Get the pending requests routed to the HR staff.
      *
      * @param requestTypeId the optional request type filter
+     * @param sort the order by submission date, OLDEST_FIRST by default
      * @param page the page number, 0 by default
      * @param size the page size, 20 by default
      * @return the HTTP response
      */
     @GetMapping("/pending-approval/hr-staff")
     @Operation(summary = "Get pending requests of the HR staff",
-            description = "Retrieves one page of the IN_PROGRESS requests of employees without direct manager, oldest first.")
+            description = "Retrieves one page of the IN_PROGRESS requests of employees without direct manager, oldest first by default.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Requests retrieved successfully",
                     content = @Content(schema = @Schema(implementation = PageResource.class))),
-            @ApiResponse(responseCode = "400", description = "Invalid page or size")
+            @ApiResponse(responseCode = "400", description = "Invalid sort, page or size")
     })
     public ResponseEntity<PageResource<RequestResource>> getPendingApprovalForHrStaff(
             @RequestParam(required = false) @Parameter(description = "Request type filter", example = "1") Long requestTypeId,
+            @RequestParam(required = false) @Parameter(description = "Order by submission date",
+                    schema = @Schema(allowableValues = {"OLDEST_FIRST", "NEWEST_FIRST"}, defaultValue = "OLDEST_FIRST"))
+            String sort,
             @RequestParam(required = false) @Parameter(description = "Page number, starting at 0", example = "0") Integer page,
             @RequestParam(required = false) @Parameter(description = "Page size, from 1 to 100", example = "20") Integer size) {
         var requests = requestQueryService.handle(
-                new GetPendingRequestsForHrStaffQuery(requestTypeId, PageCriteria.of(page, size)));
+                new GetPendingRequestsForHrStaffQuery(requestTypeId, toSortOrder(sort), PageCriteria.of(page, size)));
         return ResponseEntity.ok(toPageResource(requests));
     }
 
@@ -366,6 +383,11 @@ public class RequestsController {
         return status == null || status.isBlank()
                 ? null
                 : RequestEnumAssembler.toEnum(RequestStatus.class, status, null, "status");
+    }
+
+    /** Converts the optional sort parameter into a RequestSortOrder, OLDEST_FIRST when it is empty. */
+    private static RequestSortOrder toSortOrder(String sort) {
+        return RequestEnumAssembler.toEnum(RequestSortOrder.class, sort, RequestSortOrder.OLDEST_FIRST, "sort");
     }
 
     /** Converts a page of requests into the page resource returned by the list endpoints. */

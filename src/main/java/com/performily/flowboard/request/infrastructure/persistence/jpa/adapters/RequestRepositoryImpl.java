@@ -2,6 +2,7 @@ package com.performily.flowboard.request.infrastructure.persistence.jpa.adapters
 
 import com.performily.flowboard.request.domain.model.aggregates.Request;
 import com.performily.flowboard.request.domain.model.valueobjects.ApproverType;
+import com.performily.flowboard.request.domain.model.valueobjects.RequestSortOrder;
 import com.performily.flowboard.request.domain.model.valueobjects.RequestStatus;
 import com.performily.flowboard.request.domain.repositories.RequestRepository;
 import com.performily.flowboard.request.infrastructure.persistence.jpa.assemblers.RequestPersistenceAssembler;
@@ -13,11 +14,13 @@ import com.performily.flowboard.shared.domain.model.valueobjects.PagedResult;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -77,9 +80,11 @@ public class RequestRepositoryImpl implements RequestRepository {
 
     @Override
     @Transactional(readOnly = true)
-    public PagedResult<Request> findAll(Long requesterId, RequestStatus status, Long requestTypeId, PageCriteria page) {
-        return toPagedResult(requestPersistenceRepository.findPageByFilters(
-                requesterId, status, requestTypeId, PageRequest.of(page.page(), page.size())), page);
+    public PagedResult<Request> findAll(Long requesterId, List<RequestStatus> statuses, Long requestTypeId,
+                                        Long approverId, PageCriteria page) {
+        var statusFilter = statuses.isEmpty() ? Arrays.asList(RequestStatus.values()) : statuses;
+        return toPagedResult(requestPersistenceRepository.findPageByFilters(requesterId, statusFilter, requestTypeId,
+                approverId, PageRequest.of(page.page(), page.size())), page);
     }
 
     @Override
@@ -106,16 +111,17 @@ public class RequestRepositoryImpl implements RequestRepository {
 
     @Override
     @Transactional(readOnly = true)
-    public PagedResult<Request> findAllPendingByApproverEmployeeId(Long approverId, Long requestTypeId, PageCriteria page) {
+    public PagedResult<Request> findAllPendingByApproverEmployeeId(Long approverId, Long requestTypeId,
+                                                                   RequestSortOrder sort, PageCriteria page) {
         return toPagedResult(requestPersistenceRepository.findPageByApprover(ApproverType.DIRECT_MANAGER, approverId,
-                RequestStatus.IN_PROGRESS, requestTypeId, PageRequest.of(page.page(), page.size())), page);
+                RequestStatus.IN_PROGRESS, requestTypeId, toSortedPageable(page, sort)), page);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public PagedResult<Request> findAllPendingForHrStaff(Long requestTypeId, PageCriteria page) {
+    public PagedResult<Request> findAllPendingForHrStaff(Long requestTypeId, RequestSortOrder sort, PageCriteria page) {
         return toPagedResult(requestPersistenceRepository.findPageByApprover(ApproverType.HR_STAFF, null,
-                RequestStatus.IN_PROGRESS, requestTypeId, PageRequest.of(page.page(), page.size())), page);
+                RequestStatus.IN_PROGRESS, requestTypeId, toSortedPageable(page, sort)), page);
     }
 
     @Override
@@ -158,6 +164,12 @@ public class RequestRepositoryImpl implements RequestRepository {
      * @return the stored entity, already updated
      * @throws IllegalArgumentException if the request does not exist
      */
+    /** Builds the pageable ordered by submission date (and id to break ties). */
+    private static PageRequest toSortedPageable(PageCriteria page, RequestSortOrder sort) {
+        var direction = sort == RequestSortOrder.NEWEST_FIRST ? Sort.Direction.DESC : Sort.Direction.ASC;
+        return PageRequest.of(page.page(), page.size(), Sort.by(direction, "submittedAt", "id"));
+    }
+
     /** Converts a page of entities into a page of domain requests. */
     private static PagedResult<Request> toPagedResult(Page<RequestPersistenceEntity> page, PageCriteria criteria) {
         var items = page.getContent().stream().map(RequestPersistenceAssembler::toDomainFromPersistence).toList();

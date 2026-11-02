@@ -40,7 +40,8 @@ public class RequestQueryServiceImpl implements RequestQueryService {
 
     @Override
     public PagedResult<Request> handle(GetAllRequestsQuery query) {
-        return requestRepository.findAll(query.requesterId(), query.status(), query.requestTypeId(), query.page());
+        return requestRepository.findAll(query.requesterId(), query.statuses(), query.requestTypeId(),
+                query.approverId(), query.page());
     }
 
     @Override
@@ -50,11 +51,12 @@ public class RequestQueryServiceImpl implements RequestQueryService {
 
     @Override
     public PagedResult<Request> handle(GetPendingRequestsByApproverIdQuery query) {
-        return requestRepository.findAllPendingByApproverEmployeeId(query.approverId(), query.requestTypeId(), query.page());
+        return requestRepository.findAllPendingByApproverEmployeeId(query.approverId(), query.requestTypeId(),
+                query.sort(), query.page());
     }
 
     @Override
     public PagedResult<Request> handle(GetPendingRequestsForHrStaffQuery query) {
-        return requestRepository.findAllPendingForHrStaff(query.requestTypeId(), query.page());
+        return requestRepository.findAllPendingForHrStaff(query.requestTypeId(), query.sort(), query.page());
     }
 }

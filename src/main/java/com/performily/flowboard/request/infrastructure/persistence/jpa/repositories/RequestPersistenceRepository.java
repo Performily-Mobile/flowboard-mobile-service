@@ -42,31 +42,36 @@ public interface RequestPersistenceRepository extends JpaRepository<RequestPersi
     Optional<RequestPersistenceEntity> findWithRequestTypeById(@Param("id") Long id);
 
     /**
-     * Finds one page of the requests that match the optional filters, newest first.
+     * Finds one page of the requests that match the filters, newest first. Requester,
+     * request type and approver are optional; statuses must have at least one value.
      *
-     * @param requesterId   the requester id, or null for all
-     * @param status        the status, or null for all
-     * @param requestTypeId the request type id, or null for all
-     * @param pageable      the page to read
+     * @param requesterId        the requester id, or null for all
+     * @param statuses           the statuses to include
+     * @param requestTypeId      the request type id, or null for all
+     * @param approverEmployeeId the direct manager id, or null for all
+     * @param pageable           the page to read
      * @return the page of requests
      */
     @Query(value = """
             select r from RequestPersistenceEntity r
             join fetch r.requestType
             where (:requesterId is null or r.requesterId = :requesterId)
-              and (:status is null or r.status = :status)
+              and r.status in :statuses
               and (:requestTypeId is null or r.requestType.id = :requestTypeId)
+              and (:approverEmployeeId is null or r.approverEmployeeId = :approverEmployeeId)
             order by r.submittedAt desc, r.id desc
             """,
             countQuery = """
             select count(r) from RequestPersistenceEntity r
             where (:requesterId is null or r.requesterId = :requesterId)
-              and (:status is null or r.status = :status)
+              and r.status in :statuses
               and (:requestTypeId is null or r.requestType.id = :requestTypeId)
+              and (:approverEmployeeId is null or r.approverEmployeeId = :approverEmployeeId)
             """)
     Page<RequestPersistenceEntity> findPageByFilters(@Param("requesterId") Long requesterId,
-                                                     @Param("status") RequestStatus status,
+                                                     @Param("statuses") Collection<RequestStatus> statuses,
                                                      @Param("requestTypeId") Long requestTypeId,
+                                                     @Param("approverEmployeeId") Long approverEmployeeId,
                                                      Pageable pageable);
 
     /**
@@ -129,8 +134,8 @@ public interface RequestPersistenceRepository extends JpaRepository<RequestPersi
                                                                 @Param("statuses") Collection<RequestStatus> statuses);
 
     /**
-     * Finds one page of the requests with the given approver and status, oldest first.
-     * The approver employee id and the request type are optional filters.
+     * Finds one page of the requests with the given approver and status. The order
+     * comes from the pageable. The approver employee id and the request type are optional filters.
      *
      * @param approverType       the approver type
      * @param approverEmployeeId the approver employee id, or null
@@ -146,7 +151,6 @@ public interface RequestPersistenceRepository extends JpaRepository<RequestPersi
               and (:approverEmployeeId is null or r.approverEmployeeId = :approverEmployeeId)
               and r.status = :status
               and (:requestTypeId is null or r.requestType.id = :requestTypeId)
-            order by r.submittedAt asc, r.id asc
             """,
             countQuery = """
             select count(r) from RequestPersistenceEntity r
