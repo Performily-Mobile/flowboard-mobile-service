@@ -59,9 +59,18 @@ public class RequestTypeCommandServiceImpl implements RequestTypeCommandService 
     public Result<RequestType, ApplicationError> handle(UpdateRequestTypeCommand command) {
         if (requestTypeRepository.existsByNameAndIdIsNot(command.name().trim(), command.requestTypeId()))
             return Result.failure(ApplicationError.conflict("RequestType", "Name '%s' already exists".formatted(command.name())));
+        if (command.fields() != null && requestRepository.existsByRequestTypeId(command.requestTypeId())) {
+            var current = requestTypeRepository.findById(command.requestTypeId());
+            if (current.isPresent() && !current.get().keysMissingIn(command.fields()).isEmpty())
+                return Result.failure(ApplicationError.businessRuleViolation("request-field-removal",
+                        "A request type with requests cannot lose fields; create a new type or deactivate it instead"));
+        }
         return execute(command.requestTypeId(), "update-request-type",
-                requestType -> requestType.update(command.name(), command.description(),
-                        command.requiresAttachment(), command.balanceDeduction()));
+                requestType -> {
+                    requestType.update(command.name(), command.description(),
+                            command.requiresAttachment(), command.balanceDeduction());
+                    if (command.fields() != null) requestType.replaceFields(command.fields());
+                });
     }
 
     @Override
