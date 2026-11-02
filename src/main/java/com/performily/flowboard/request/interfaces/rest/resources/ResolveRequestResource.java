@@ -22,7 +22,7 @@ public record ResolveRequestResource(
         Long actorId,
 
         @Size(max = 500)
-        @Schema(description = "Rejection reason or review comment", example = "Adjunta el descanso médico firmado", maxLength = 500)
+        @Schema(description = "Rejection reason, review comment or optional approval note", example = "Adjunta el descanso médico firmado", maxLength = 500)
         String comment
 ) {
 }

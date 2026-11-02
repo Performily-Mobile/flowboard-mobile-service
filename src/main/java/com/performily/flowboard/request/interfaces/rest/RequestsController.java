@@ -245,7 +245,8 @@ public class RequestsController {
      * @return the HTTP response
      */
     @PostMapping("/{requestId}/approve")
-    @Operation(summary = "Approve request", description = "Approves an IN_PROGRESS request. Only the assigned approver can do it.")
+    @Operation(summary = "Approve request",
+            description = "Approves an IN_PROGRESS request. Only the assigned approver can do it. The comment is optional.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Request approved successfully",
                     content = @Content(schema = @Schema(implementation = RequestResource.class))),
@@ -255,7 +256,7 @@ public class RequestsController {
     public ResponseEntity<?> approveRequest(
             @PathVariable @Parameter(description = "Request unique identifier", example = "1", required = true) Long requestId,
             @Valid @RequestBody ResolveRequestResource resource) {
-        var result = requestCommandService.handle(new ApproveRequestCommand(requestId, resource.actorId()));
+        var result = requestCommandService.handle(new ApproveRequestCommand(requestId, resource.actorId(), resource.comment()));
         return ResponseEntityAssembler.toResponseEntityFromResult(
                 result, RequestResourceFromEntityAssembler::toResourceFromEntity, HttpStatus.OK);
     }

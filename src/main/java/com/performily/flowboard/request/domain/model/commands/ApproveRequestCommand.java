@@ -3,11 +3,12 @@ package com.performily.flowboard.request.domain.model.commands;
 /**
  * Approve Request Command
  * @summary
- * Command to approve a request. actorId is the employee that approves it.
+ * Command to approve a request. actorId is the employee that approves it and
+ * comment is an optional note for the requester.
  *
  * @since 1.0.0
  */
-public record ApproveRequestCommand(Long requestId, Long actorId) {
+public record ApproveRequestCommand(Long requestId, Long actorId, String comment) {
     /**
      * Compact constructor for ApproveRequestCommand.
      *

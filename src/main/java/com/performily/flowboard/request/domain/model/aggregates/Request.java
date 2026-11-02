@@ -103,14 +103,15 @@ public class Request extends AbstractDomainAggregateRoot<Request> {
     }
 
     /**
-     * Approves the request.
+     * Approves the request. The comment is optional and is kept in the history.
      *
      * @param actorId the approver
+     * @param comment an optional note for the requester, or null
      */
-    public void approve(EmployeeId actorId) {
+    public void approve(EmployeeId actorId, String comment) {
         requireStatus(RequestStatus.IN_PROGRESS, "approved");
         requireApprover(actorId);
-        changeStatus(RequestStatus.APPROVED, actorId, null);
+        changeStatus(RequestStatus.APPROVED, actorId, comment == null || comment.isBlank() ? null : comment.trim());
         registerDomainEvent(new RequestApprovedEvent(id, requesterId.value(), actorId.value(), requestedDays(),
                 requestType.getBalanceDeduction().name(), LocalDateTime.now()));
     }

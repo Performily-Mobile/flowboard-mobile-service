@@ -90,7 +90,7 @@ public class RequestCommandServiceImpl implements RequestCommandService {
     @Override
     public Result<Request, ApplicationError> handle(ApproveRequestCommand command) {
         return execute(command.requestId(), "approve-request",
-                request -> request.approve(new EmployeeId(command.actorId())));
+                request -> request.approve(new EmployeeId(command.actorId()), command.comment()));
     }
 
     @Override
