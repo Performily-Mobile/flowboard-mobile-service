@@ -1,15 +1,20 @@
 package com.performily.flowboard.request.domain.model.commands;
 
+import com.performily.flowboard.request.domain.model.entities.RequestField;
 import com.performily.flowboard.request.domain.model.valueobjects.BalanceDeduction;
+
+import java.util.List;
 
 /**
  * Update Request Type Command
  * @summary
- * Command to update the general data of a request type.
+ * Command to update a request type. When fields is given it replaces the fields of
+ * the form (matched by key); when it is null the fields are kept.
  *
  * @since 1.0.0
  */
-public record UpdateRequestTypeCommand(Long requestTypeId, String name, String description, boolean requiresAttachment, BalanceDeduction balanceDeduction) {
+public record UpdateRequestTypeCommand(Long requestTypeId, String name, String description, boolean requiresAttachment,
+                                       BalanceDeduction balanceDeduction, List<RequestField> fields) {
     /**
      * Compact constructor for UpdateRequestTypeCommand.
      *
@@ -25,5 +30,6 @@ public record UpdateRequestTypeCommand(Long requestTypeId, String name, String d
         if (balanceDeduction == null) {
             throw new IllegalArgumentException("balanceDeduction cannot be null");
         }
+        fields = fields == null ? null : List.copyOf(fields);
     }
 }
