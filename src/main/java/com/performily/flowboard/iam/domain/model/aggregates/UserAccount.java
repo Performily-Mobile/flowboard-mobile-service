@@ -40,8 +40,8 @@ public class UserAccount {
     @Column(name = "last_sign_in_at")
     public Instant lastSignInAt;
 
-    @Column(name = "credential_version", nullable = false)
-    public long credentialVersion = 0;
+    @Column(name = "credential_version", nullable = false, columnDefinition = "BIGINT DEFAULT 1")
+    public long credentialVersion = 1;
 
     public enum Role {
         HR_STAFF, EMPLOYEE
