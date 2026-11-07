@@ -68,7 +68,7 @@ public class RequestCommandServiceImpl implements RequestCommandService {
             var period = RequestPeriod.ofNullable(command.startDate(), command.endDate(),
                     command.startTime(), command.endTime());
             if (period != null && requestRepository.existsOverlappingRequest(
-                    command.requesterId(), period.startDate(), period.endDate()))
+                    command.requesterId(), period.startDate(), period.endDate(), null))
                 return Result.failure(ApplicationError.conflict("Request",
                         "The employee already has a request in progress or approved for the same days"));
 
@@ -90,7 +90,7 @@ public class RequestCommandServiceImpl implements RequestCommandService {
     @Override
     public Result<Request, ApplicationError> handle(ApproveRequestCommand command) {
         return execute(command.requestId(), "approve-request",
-                request -> request.approve(new EmployeeId(command.actorId())));
+                request -> request.approve(new EmployeeId(command.actorId()), command.comment()));
     }
 
     @Override
@@ -107,8 +107,23 @@ public class RequestCommandServiceImpl implements RequestCommandService {
 
     @Override
     public Result<Request, ApplicationError> handle(ResubmitRequestCommand command) {
-        return execute(command.requestId(), "resubmit-request",
-                request -> request.resubmit(new EmployeeId(command.actorId()), command.fieldValues(),
+        var result = requestRepository.findById(command.requestId());
+        if (result.isEmpty())
+            return Result.failure(ApplicationError.notFound("Request", command.requestId().toString()));
+        var request = result.get();
+        RequestPeriod period;
+        try {
+            period = RequestPeriod.ofNullable(command.startDate(), command.endDate(),
+                    command.startTime(), command.endTime());
+        } catch (IllegalArgumentException e) {
+            return Result.failure(ApplicationError.validationError("request", e.getMessage()));
+        }
+        if (period != null && requestRepository.existsOverlappingRequest(
+                request.getRequesterId().value(), period.startDate(), period.endDate(), request.getId()))
+            return Result.failure(ApplicationError.conflict("Request",
+                    "The employee already has a request in progress or approved for the same days"));
+        return apply(request, "resubmit-request",
+                loaded -> loaded.resubmit(new EmployeeId(command.actorId()), period, command.fieldValues(),
                         command.attachments(), command.comment()));
     }
 
@@ -132,7 +147,18 @@ public class RequestCommandServiceImpl implements RequestCommandService {
         var result = requestRepository.findById(requestId);
         if (result.isEmpty())
             return Result.failure(ApplicationError.notFound("Request", requestId.toString()));
-        var request = result.get();
+        return apply(result.get(), action, change);
+    }
+
+    /**
+     * Applies the change on a loaded request and saves it.
+     *
+     * @param request the loaded {@link Request}
+     * @param action  the name of the action, used in the error messages
+     * @param change  the change to apply on the aggregate
+     * @return the updated request or an application error
+     */
+    private Result<Request, ApplicationError> apply(Request request, String action, Consumer<Request> change) {
         try {
             change.accept(request);
             return Result.success(requestRepository.save(request));

@@ -103,14 +103,15 @@ public class Request extends AbstractDomainAggregateRoot<Request> {
     }
 
     /**
-     * Approves the request.
+     * Approves the request. The comment is optional and is kept in the history.
      *
      * @param actorId the approver
+     * @param comment an optional note for the requester, or null
      */
-    public void approve(EmployeeId actorId) {
+    public void approve(EmployeeId actorId, String comment) {
         requireStatus(RequestStatus.IN_PROGRESS, "approved");
         requireApprover(actorId);
-        changeStatus(RequestStatus.APPROVED, actorId, null);
+        changeStatus(RequestStatus.APPROVED, actorId, comment == null || comment.isBlank() ? null : comment.trim());
         registerDomainEvent(new RequestApprovedEvent(id, requesterId.value(), actorId.value(), requestedDays(),
                 requestType.getBalanceDeduction().name(), LocalDateTime.now()));
     }
@@ -148,14 +149,20 @@ public class Request extends AbstractDomainAggregateRoot<Request> {
      * replace the previous ones and are validated again against the type.
      *
      * @param actorId     the requester
+     * @param period      the corrected period, or null to keep the current one
      * @param fieldValues the new values of the form
      * @param attachments the new attachments
      * @param comment     an optional comment for the approver
      */
-    public void resubmit(EmployeeId actorId, List<FieldValue> fieldValues, List<FileReference> attachments, String comment) {
+    public void resubmit(EmployeeId actorId, RequestPeriod period, List<FieldValue> fieldValues,
+                         List<FileReference> attachments, String comment) {
         requireStatus(RequestStatus.UNDER_REVIEW, "resubmitted");
         requireRequester(actorId);
         requestType.validate(fieldValues, attachments);
+        if (period != null) {
+            validatePeriod(requestType, period);
+            this.period = period;
+        }
         this.fieldValues = copy(fieldValues);
         this.attachments = copy(attachments);
         changeStatus(RequestStatus.IN_PROGRESS, actorId, comment);
@@ -256,6 +263,9 @@ public class Request extends AbstractDomainAggregateRoot<Request> {
     }
 
     private void requireApprover(EmployeeId actorId) {
+        if (requesterId.equals(actorId)) {
+            throw new IllegalStateException("An employee cannot resolve their own request");
+        }
         if (actorId == null || !approver.isAssignedTo(actorId)) {
             throw new IllegalStateException("Only the assigned approver can resolve this request");
         }

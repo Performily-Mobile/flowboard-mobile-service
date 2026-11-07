@@ -26,6 +26,7 @@ public class UpdateRequestTypeCommandFromResourceAssembler {
                 resource.description(),
                 Boolean.TRUE.equals(resource.requiresAttachment()),
                 RequestEnumAssembler.toEnum(BalanceDeduction.class, resource.balanceDeduction(),
-                        BalanceDeduction.NONE, "balanceDeduction"));
+                        BalanceDeduction.NONE, "balanceDeduction"),
+                RequestFieldFromResourceAssembler.toFieldsFromResources(resource.fields()));
     }
 }

@@ -1,12 +1,13 @@
 package com.performily.flowboard.request.application.queryservices;
 
 import com.performily.flowboard.request.domain.model.aggregates.Request;
+import com.performily.flowboard.request.domain.model.queries.GetAllRequestsQuery;
 import com.performily.flowboard.request.domain.model.queries.GetPendingRequestsByApproverIdQuery;
 import com.performily.flowboard.request.domain.model.queries.GetPendingRequestsForHrStaffQuery;
 import com.performily.flowboard.request.domain.model.queries.GetRequestByIdQuery;
 import com.performily.flowboard.request.domain.model.queries.GetRequestsByRequesterIdQuery;
+import com.performily.flowboard.shared.domain.model.valueobjects.PagedResult;
 
-import java.util.List;
 import java.util.Optional;
 
 /**
@@ -26,26 +27,34 @@ public interface RequestQueryService {
     Optional<Request> handle(GetRequestByIdQuery query);
 
     /**
+     * Handles retrieval of the requests of every employee, with optional filters.
+     *
+     * @param query all-requests query
+     * @return one page of requests
+     */
+    PagedResult<Request> handle(GetAllRequestsQuery query);
+
+    /**
      * Handles retrieval of the requests of an employee.
      *
      * @param query requester-id query
-     * @return list of requests
+     * @return one page of requests
      */
-    List<Request> handle(GetRequestsByRequesterIdQuery query);
+    PagedResult<Request> handle(GetRequestsByRequesterIdQuery query);
 
     /**
      * Handles retrieval of the pending requests of a direct manager.
      *
      * @param query approver-id query
-     * @return list of requests
+     * @return one page of requests
      */
-    List<Request> handle(GetPendingRequestsByApproverIdQuery query);
+    PagedResult<Request> handle(GetPendingRequestsByApproverIdQuery query);
 
     /**
      * Handles retrieval of the pending requests routed to the HR staff.
      *
      * @param query hr-staff query
-     * @return list of requests
+     * @return one page of requests
      */
-    List<Request> handle(GetPendingRequestsForHrStaffQuery query);
+    PagedResult<Request> handle(GetPendingRequestsForHrStaffQuery query);
 }

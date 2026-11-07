@@ -2,14 +2,15 @@ package com.performily.flowboard.request.application.internal.queryservices;
 
 import com.performily.flowboard.request.application.queryservices.RequestQueryService;
 import com.performily.flowboard.request.domain.model.aggregates.Request;
+import com.performily.flowboard.request.domain.model.queries.GetAllRequestsQuery;
 import com.performily.flowboard.request.domain.model.queries.GetPendingRequestsByApproverIdQuery;
 import com.performily.flowboard.request.domain.model.queries.GetPendingRequestsForHrStaffQuery;
 import com.performily.flowboard.request.domain.model.queries.GetRequestByIdQuery;
 import com.performily.flowboard.request.domain.model.queries.GetRequestsByRequesterIdQuery;
 import com.performily.flowboard.request.domain.repositories.RequestRepository;
+import com.performily.flowboard.shared.domain.model.valueobjects.PagedResult;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.Optional;
 
 /**
@@ -38,17 +39,24 @@ public class RequestQueryServiceImpl implements RequestQueryService {
     }
 
     @Override
-    public List<Request> handle(GetRequestsByRequesterIdQuery query) {
-        return requestRepository.findAllByRequesterId(query.requesterId(), query.status());
+    public PagedResult<Request> handle(GetAllRequestsQuery query) {
+        return requestRepository.findAll(query.requesterId(), query.statuses(), query.requestTypeId(),
+                query.approverId(), query.page());
     }
 
     @Override
-    public List<Request> handle(GetPendingRequestsByApproverIdQuery query) {
-        return requestRepository.findAllPendingByApproverEmployeeId(query.approverId(), query.requestTypeId());
+    public PagedResult<Request> handle(GetRequestsByRequesterIdQuery query) {
+        return requestRepository.findAllByRequesterId(query.requesterId(), query.status(), query.page());
     }
 
     @Override
-    public List<Request> handle(GetPendingRequestsForHrStaffQuery query) {
-        return requestRepository.findAllPendingForHrStaff(query.requestTypeId());
+    public PagedResult<Request> handle(GetPendingRequestsByApproverIdQuery query) {
+        return requestRepository.findAllPendingByApproverEmployeeId(query.approverId(), query.requestTypeId(),
+                query.sort(), query.page());
+    }
+
+    @Override
+    public PagedResult<Request> handle(GetPendingRequestsForHrStaffQuery query) {
+        return requestRepository.findAllPendingForHrStaff(query.requestTypeId(), query.sort(), query.page());
     }
 }

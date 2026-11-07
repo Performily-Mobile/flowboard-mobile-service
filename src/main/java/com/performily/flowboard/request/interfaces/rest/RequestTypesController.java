@@ -141,13 +141,16 @@ public class RequestTypesController {
      * @return the HTTP response
      */
     @PutMapping("/{requestTypeId}")
-    @Operation(summary = "Update request type", description = "Updates the name, description, attachment flag and balance deduction of a request type.")
+    @Operation(summary = "Update request type",
+            description = "Updates the name, description, attachment flag and balance deduction of a request type. "
+                    + "When fields is sent it replaces the fields of the form; a type with requests cannot lose fields.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Request type updated successfully",
                     content = @Content(schema = @Schema(implementation = RequestTypeResource.class))),
             @ApiResponse(responseCode = "400", description = "Invalid input data"),
             @ApiResponse(responseCode = "404", description = "Request type not found"),
-            @ApiResponse(responseCode = "409", description = "Conflict - request type name already exists")
+            @ApiResponse(responseCode = "409", description = "Conflict - request type name already exists"),
+            @ApiResponse(responseCode = "422", description = "The type has requests and the new fields remove some of them")
     })
     public ResponseEntity<?> updateRequestType(
             @PathVariable @Parameter(description = "Request type unique identifier", example = "1", required = true) Long requestTypeId,

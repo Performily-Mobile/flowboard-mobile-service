@@ -1,7 +1,10 @@
 package com.performily.flowboard.request.domain.repositories;
 
 import com.performily.flowboard.request.domain.model.aggregates.Request;
+import com.performily.flowboard.request.domain.model.valueobjects.RequestSortOrder;
 import com.performily.flowboard.request.domain.model.valueobjects.RequestStatus;
+import com.performily.flowboard.shared.domain.model.valueobjects.PageCriteria;
+import com.performily.flowboard.shared.domain.model.valueobjects.PagedResult;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -24,13 +27,27 @@ public interface RequestRepository {
     Optional<Request> findById(Long id);
 
     /**
-     * Finds the requests of an employee, newest first.
+     * Finds one page of the requests of every employee, newest first. All the filters are optional.
+     *
+     * @param requesterId   the requester filter, or null for all
+     * @param statuses      the status filter, or an empty list for all
+     * @param requestTypeId the request type filter, or null for all
+     * @param approverId    the direct manager filter, or null for all
+     * @param page          the page to read
+     * @return the page of requests
+     */
+    PagedResult<Request> findAll(Long requesterId, List<RequestStatus> statuses, Long requestTypeId,
+                                 Long approverId, PageCriteria page);
+
+    /**
+     * Finds one page of the requests of an employee, newest first.
      *
      * @param requesterId the requester id
      * @param status      the status filter, or null for all
-     * @return the list of requests
+     * @param page        the page to read
+     * @return the page of requests
      */
-    List<Request> findAllByRequesterId(Long requesterId, RequestStatus status);
+    PagedResult<Request> findAllByRequesterId(Long requesterId, RequestStatus status, PageCriteria page);
 
     /**
      * Finds the requests of an employee that are not resolved yet
@@ -42,21 +59,35 @@ public interface RequestRepository {
     List<Request> findAllUnresolvedByRequesterId(Long requesterId);
 
     /**
-     * Finds the IN_PROGRESS requests assigned to a direct manager, oldest first.
+     * Finds the requests assigned to a direct manager that are not resolved yet
+     * (IN_PROGRESS or UNDER_REVIEW).
+     *
+     * @param approverId the approver id
+     * @return the list of requests
+     */
+    List<Request> findAllUnresolvedByApproverEmployeeId(Long approverId);
+
+    /**
+     * Finds one page of the IN_PROGRESS requests assigned to a direct manager.
      *
      * @param approverId    the approver id
      * @param requestTypeId the request type filter, or null for all
-     * @return the list of requests
+     * @param sort          the order by submission date
+     * @param page          the page to read
+     * @return the page of requests
      */
-    List<Request> findAllPendingByApproverEmployeeId(Long approverId, Long requestTypeId);
+    PagedResult<Request> findAllPendingByApproverEmployeeId(Long approverId, Long requestTypeId,
+                                                            RequestSortOrder sort, PageCriteria page);
 
     /**
-     * Finds the IN_PROGRESS requests routed to the HR staff, oldest first.
+     * Finds one page of the IN_PROGRESS requests routed to the HR staff.
      *
      * @param requestTypeId the request type filter, or null for all
-     * @return the list of requests
+     * @param sort          the order by submission date
+     * @param page          the page to read
+     * @return the page of requests
      */
-    List<Request> findAllPendingForHrStaff(Long requestTypeId);
+    PagedResult<Request> findAllPendingForHrStaff(Long requestTypeId, RequestSortOrder sort, PageCriteria page);
 
     /**
      * Saves the request and publishes its domain events.
@@ -68,14 +99,15 @@ public interface RequestRepository {
 
     /**
      * Checks whether the employee already has a request IN_PROGRESS, UNDER_REVIEW or
-     * APPROVED whose period overlaps the given dates.
+     * APPROVED whose period overlaps the given dates. One request can be left out.
      *
-     * @param requesterId the requester id
-     * @param startDate   the start date
-     * @param endDate     the end date
+     * @param requesterId       the requester id
+     * @param startDate         the start date
+     * @param endDate           the end date
+     * @param excludedRequestId the request to leave out, or null
      * @return true if there is an overlapping request
      */
-    boolean existsOverlappingRequest(Long requesterId, LocalDate startDate, LocalDate endDate);
+    boolean existsOverlappingRequest(Long requesterId, LocalDate startDate, LocalDate endDate, Long excludedRequestId);
 
     /**
      * Checks whether a request type already has requests.

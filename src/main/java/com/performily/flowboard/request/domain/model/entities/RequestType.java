@@ -6,8 +6,10 @@ import com.performily.flowboard.shared.domain.model.valueobjects.FileReference;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -84,6 +86,40 @@ public class RequestType {
             throw new IllegalArgumentException("Field key '%s' already exists in this request type".formatted(field.getKey().value()));
         }
         fields.add(field);
+    }
+
+    /**
+     * Replaces the fields of the form. Fields with the same key keep their id.
+     *
+     * @param newFields the new fields
+     */
+    public void replaceFields(List<RequestField> newFields) {
+        Objects.requireNonNull(newFields, "Fields cannot be null");
+        var keys = new HashSet<String>();
+        for (var field : newFields) {
+            if (!keys.add(field.getKey().value())) {
+                throw new IllegalArgumentException("Field key '%s' is repeated".formatted(field.getKey().value()));
+            }
+        }
+        Map<String, Long> currentIds = new HashMap<>();
+        fields.forEach(field -> currentIds.put(field.getKey().value(), field.getId()));
+        var replaced = newFields.stream()
+                .map(field -> new RequestField(currentIds.get(field.getKey().value()), field.getKey(), field.getLabel(),
+                        field.getDataType(), field.isRequired(), field.getDisplayOrder()))
+                .toList();
+        fields.clear();
+        fields.addAll(replaced);
+    }
+
+    /**
+     * Returns the keys of the current fields that are not in the given list.
+     *
+     * @param newFields the new fields
+     * @return the keys that would be removed
+     */
+    public List<String> keysMissingIn(List<RequestField> newFields) {
+        var newKeys = newFields.stream().map(field -> field.getKey().value()).toList();
+        return fields.stream().map(field -> field.getKey().value()).filter(key -> !newKeys.contains(key)).toList();
     }
 
     /**

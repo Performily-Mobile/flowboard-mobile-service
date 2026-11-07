@@ -1,14 +1,17 @@
 package com.performily.flowboard.request.interfaces.rest.resources;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+
+import java.util.List;
 
 /**
  * Update Request Type Resource
  * @summary
- * Resource for updating the general data of a request type. The fields are
- * managed with their own endpoints.
+ * Resource for updating a request type. When fields is sent it replaces the fields
+ * of the form; when it is not sent the fields are kept.
  *
  * @since 1.0.0
  */
@@ -28,6 +31,10 @@ public record UpdateRequestTypeResource(
 
         @Schema(description = "Balance deducted when the request is approved", example = "VACATION_DAYS",
                 allowableValues = {"NONE", "VACATION_DAYS", "BENEFIT_BALANCE"}, defaultValue = "NONE")
-        String balanceDeduction
+        String balanceDeduction,
+
+        @Valid
+        @Schema(description = "New fields of the form, or null to keep the current ones")
+        List<CreateRequestFieldResource> fields
 ) {
 }
