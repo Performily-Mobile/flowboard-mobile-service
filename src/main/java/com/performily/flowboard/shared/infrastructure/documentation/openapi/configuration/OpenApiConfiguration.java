@@ -49,8 +49,8 @@ public class OpenApiConfiguration {
 
         openApi.servers(List.of(
                 new Server()
-                        .url("http://localhost:8080")
-                        .description("Local Development Environment")
+                        .url("/")
+                        .description("Server that serves this documentation")
         ));
 
         final String securitySchemeName = "bearerAuth";
