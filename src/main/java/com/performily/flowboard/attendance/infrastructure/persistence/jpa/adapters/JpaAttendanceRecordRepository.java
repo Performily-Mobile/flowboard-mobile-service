@@ -73,6 +73,13 @@ public class JpaAttendanceRecordRepository implements AttendanceRecordRepository
         return repository.existsByEmployeeIdAndWorkDate(e, d);
     } 
 
+    public org.springframework.data.domain.Page<AttendanceRecord> findRecords(
+            LocalDate from, LocalDate to,
+            com.performily.flowboard.attendance.domain.model.valueobjects.AttendanceStatus status,
+            org.springframework.data.domain.Pageable pageable) {
+        return repository.findGeneralRecords(from, to, status, pageable).map(this::toDomain);
+    }
+
     public List<AttendanceRecord> findAll() {
         return repository.findAll().stream().map(this::toDomain).toList();
     } 

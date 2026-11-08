@@ -7,8 +7,18 @@ import java.util.*;
 
 public interface AttendanceQueryService { 
     List<AttendanceRecord> handle(GetAttendanceRecordsByEmployeeIdQuery query); 
+
     List<AttendanceRecord> handle(GetDailyAttendanceByAreaQuery query); 
+
+    org.springframework.data.domain.Page<AttendanceRecord> getRecords(
+        java.time.LocalDate from, java.time.LocalDate to,
+        com.performily.flowboard.attendance.domain.model.valueobjects.AttendanceStatus status,
+        org.springframework.data.domain.Pageable pageable);
+
+    List<AttendanceRecord> getAreaRecords(Long areaId, java.time.LocalDate from, java.time.LocalDate to);
+
     List<WorkSchedule> getAllWorkSchedules(); 
+    
     Optional<WorkSchedule> getWorkScheduleById(Long id);
     
     com.performily.flowboard.attendance.interfaces.rest.resources.AttendanceAreaSummaryResource getAreaSummary(

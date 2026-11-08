@@ -28,13 +28,24 @@ public class AttendanceQueryServiceImpl implements AttendanceQueryService {
     }
 
     public List<AttendanceRecord> handle(GetDailyAttendanceByAreaQuery q) {
-        // TODO WS-1: replace full employee aggregates with lightweight summaries.
         var employees = workspace.findActiveEmployeesByAreaId(q.areaId());
         var ids = employees.stream().map(e -> e.getId()).toList();
         var byEmployee = new HashMap<Long, AttendanceRecord>();
         records.findAllByEmployeeIdsAndWorkDate(ids, q.workDate())
             .forEach(r -> byEmployee.put(r.getEmployeeId(), r));
         return ids.stream().map(byEmployee::get).filter(Objects::nonNull).toList();
+    }
+
+    public org.springframework.data.domain.Page<AttendanceRecord> getRecords(
+            java.time.LocalDate from, java.time.LocalDate to,
+            com.performily.flowboard.attendance.domain.model.valueobjects.AttendanceStatus status,
+            org.springframework.data.domain.Pageable pageable) {
+        return records.findRecords(from, to, status, pageable);
+    }
+
+    public List<AttendanceRecord> getAreaRecords(Long areaId, java.time.LocalDate from, java.time.LocalDate to) {
+        var ids = workspace.findActiveEmployeesByAreaId(areaId).stream().map(e -> e.getId()).toList();
+        return records.findAllByEmployeeIdsAndWorkDateBetween(ids, from, to);
     }
 
     public List<WorkSchedule> getAllWorkSchedules() {
