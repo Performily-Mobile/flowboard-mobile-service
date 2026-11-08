@@ -26,7 +26,7 @@ import org.springframework.data.domain.Sort;
 
 @RestController 
 @RequestMapping("/api/v1/attendance") 
-@Tag(name="Attendance") 
+@Tag(name = "Attendance", description = "Attendance management")
 public class AttendanceController {
     
     private final AttendanceCommandService commandService; 
@@ -61,7 +61,7 @@ public class AttendanceController {
     }
 
     @GetMapping("/records")
-    @Operation(summary="Paginated attendance records for HR, across all areas")
+    @Operation(summary = "Get all attendance records")
     public Page<AttendanceRecordResource> getRecords(
             Authentication auth, @RequestParam LocalDate from, @RequestParam LocalDate to,
             @RequestParam(required=false) AttendanceStatus status,
@@ -77,7 +77,7 @@ public class AttendanceController {
     }
 
     @GetMapping("/areas/{areaId}/records")
-    @Operation(summary="Attendance records for an area in a date range")
+    @Operation(summary = "Get attendance records by area")
     public List<AttendanceRecordResource> getAreaRecords(Authentication auth,
             @PathVariable Long areaId, @RequestParam LocalDate from, @RequestParam LocalDate to) {
         requireHr(auth);
@@ -87,7 +87,7 @@ public class AttendanceController {
     }
 
     @PostMapping("/punches") 
-    @Operation(summary="Register attendance punch") 
+    @Operation(summary = "Register attendance punch")
     public ResponseEntity<?> registerPunch(Authentication auth, @Valid @RequestBody RegisterPunchResource resource) {
         if (!current(auth).employeeId.equals(resource.employeeId()))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo puedes registrar tu propia asistencia.");
@@ -99,7 +99,7 @@ public class AttendanceController {
     }
     
     @GetMapping("/employees/{employeeId}") 
-    @Operation(summary="Get attendance history by employee") 
+    @Operation(summary = "Get attendance records by employee")
     public ResponseEntity<List<AttendanceRecordResource>> getByEmployee(
             Authentication auth, @PathVariable Long employeeId, 
             @RequestParam LocalDate from, 
@@ -113,12 +113,14 @@ public class AttendanceController {
         );
     }
     
+    @Operation(summary = "Get my attendance records")
     @GetMapping("/me") 
     public ResponseEntity<List<AttendanceRecordResource>> getMyAttendance(
             Authentication auth, @RequestParam LocalDate from, @RequestParam LocalDate to) {
         return getByEmployee(auth, current(auth).employeeId, from, to);
     }
     
+    @Operation(summary = "Get daily attendance by area")
     @GetMapping("/areas/{areaId}") 
     public ResponseEntity<List<AttendanceRecordResource>> getByArea(
             Authentication auth, @PathVariable Long areaId, 
@@ -131,6 +133,7 @@ public class AttendanceController {
         );
     }
     
+    @Operation(summary = "Justify attendance record")
     @PostMapping("/{attendanceRecordId}/justification") 
     public ResponseEntity<?> justify(
             Authentication auth, @PathVariable Long attendanceRecordId,
@@ -146,6 +149,7 @@ public class AttendanceController {
         );
     }
     
+    @Operation(summary = "Build daily attendance record")
     @PostMapping("/{employeeId}/build/{workDate}") 
     public ResponseEntity<?> build(
             Authentication auth, @PathVariable Long employeeId,
@@ -159,6 +163,7 @@ public class AttendanceController {
         );
     }
     
+    @Operation(summary = "Get employee working hours")
     @GetMapping("/reports/employees/{employeeId}/hours") 
     public ResponseEntity<?> getEmployeeHours(
             Authentication auth, @PathVariable Long employeeId, 
@@ -176,6 +181,7 @@ public class AttendanceController {
         return ResponseEntity.ok(new AttendanceHoursSummaryResource(employeeId, worked, overtime));
     }
     
+    @Operation(summary = "Get attendance summary by area")
     @GetMapping("/reports/areas/{areaId}") 
     public ResponseEntity<?> getAreaSummary(
             Authentication auth, @PathVariable Long areaId, 
