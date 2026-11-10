@@ -99,6 +99,8 @@ public class IamSecurityConfiguration {
                                 "/swagger-ui.html"
                         ).permitAll()
 
+                        .requestMatchers(HttpMethod.GET, "/health").permitAll()
+
                         .anyRequest().authenticated()
                 )
 
