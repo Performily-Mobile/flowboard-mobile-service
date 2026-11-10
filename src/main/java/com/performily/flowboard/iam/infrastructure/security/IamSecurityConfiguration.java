@@ -100,6 +100,7 @@ public class IamSecurityConfiguration {
                         ).permitAll()
 
                         .requestMatchers(HttpMethod.GET, "/health").permitAll()
+                        .requestMatchers(HttpMethod.HEAD, "/health").permitAll()
 
                         .anyRequest().authenticated()
                 )
